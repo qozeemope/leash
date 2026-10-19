@@ -7,7 +7,6 @@ from .policy import Mandate
 
 
 class MandateRecord(models.Model):
-    
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     raw_text = models.TextField(help_text="What the user actually typed.")
@@ -19,7 +18,6 @@ class MandateRecord(models.Model):
         return Mandate.from_dict(self.terms)
 
     def spent_cents(self) -> int:
-      
         total = self.orders.filter(status__in=[PayPalOrder.CREATED, PayPalOrder.COMPLETED]).aggregate(
             s=Sum("amount_cents")
         )["s"]
@@ -27,17 +25,16 @@ class MandateRecord(models.Model):
 
 
 class AuditEvent(models.Model):
-   
 
     OPEN, APPROVED, DENIED, NA = "open", "approved", "denied", "n/a"
 
     id = models.BigAutoField(primary_key=True)
     mandate = models.ForeignKey(MandateRecord, on_delete=models.CASCADE, related_name="events")
-    kind = models.CharField(max_length=32)  
-    outcome = models.CharField(max_length=16, blank=True)  
-    rule_hits = models.JSONField(default=list) 
-    payload = models.JSONField(default=dict)  
-    resolution = models.CharField(max_length=16, default=NA) 
+    kind = models.CharField(max_length=32)
+    outcome = models.CharField(max_length=16, blank=True)
+    rule_hits = models.JSONField(default=list)
+    payload = models.JSONField(default=dict)
+    resolution = models.CharField(max_length=16, default=NA)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -18,7 +18,7 @@ from .policy import (
     verify_mandate,
 )
 
-SECRET = settings.SECRET_KEY.encode()
+SECRET = settings.MANDATE_SIGNING_KEY.encode()
 
 
 def _action_from_json(d: dict) -> ProposedAction:
@@ -106,7 +106,7 @@ def propose(request, mandate_id):
     if decision.outcome is Outcome.ESCALATE:
         return Response({"outcome": "escalate", "reasons": decision.reasons, "event_id": event.id})
 
-    if action.kind != "checkout": 
+    if action.kind != "checkout":
         return Response({"outcome": "approve", "event_id": event.id})
 
     order = _create_paypal_order(record, action)
@@ -159,7 +159,7 @@ def capture(request, paypal_order_id):
     order = get_object_or_404(PayPalOrder, paypal_order_id=paypal_order_id)
     try:
         result = paypal.capture_order(paypal_order_id)
-    except Exception as exc:  
+    except Exception as exc:
         order.status = PayPalOrder.FAILED
         order.save(update_fields=["status"])
         return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)

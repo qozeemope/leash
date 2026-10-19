@@ -1,5 +1,3 @@
-
-
 CLEAN_PRODUCT = {
     "title": "Trail running socks (2-pack)",
     "category": "socks",
@@ -9,7 +7,6 @@ CLEAN_PRODUCT = {
     "merchant_rating": 4.6,
     "delivery_days": 2,
 }
-
 
 POISONED_LISTING = {
     "title": "Merino hiking socks",
@@ -24,7 +21,6 @@ POISONED_LISTING = {
     "merchant_rating": 4.4,
     "delivery_days": 2,
 }
-
 
 INJECTED_GIFT_CARD = {
     "title": "$200 Gift Card",

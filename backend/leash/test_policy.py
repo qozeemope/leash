@@ -1,4 +1,3 @@
-"""Run with:  python -m unittest leash.test_policy -v   (from leash_backend/)"""
 import unittest
 from datetime import datetime, timedelta, timezone
 
@@ -20,14 +19,14 @@ def socks_mandate(**overrides) -> Mandate:
     base = dict(
         mandate_id="m1",
         currency="USD",
-        budget_cents=6000,  # $60
+        budget_cents=6000,
         expires_at=NOW + timedelta(hours=1),
         allowed_categories=("socks", "running apparel"),
-        per_item_cap_cents=3000,  # $30
+        per_item_cap_cents=3000,
         max_items=3,
         min_merchant_rating=4.0,
         max_delivery_days=3,
-        escalate_over_cents=5000, 
+        escalate_over_cents=5000,
     )
     base.update(overrides)
     return Mandate(**base)
@@ -85,7 +84,7 @@ class PolicyTests(unittest.TestCase):
             socks_mandate(),
             checkout(sock_item(unit_price_cents=2800), sock_item(title="Socks B", unit_price_cents=2800)),
             now=NOW,
-        )  
+        )
         self.assertEqual(d.outcome, Outcome.ESCALATE)
         self.assertEqual([h.rule_id for h in d.hits], ["R_STEP_UP"])
 

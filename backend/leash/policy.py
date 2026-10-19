@@ -11,7 +11,7 @@ from typing import Optional
 
 class Outcome(str, Enum):
     APPROVE = "approve"
-    ESCALATE = "escalate"  # needs a human decision
+    ESCALATE = "escalate"
     BLOCK = "block"
 
 
@@ -70,13 +70,11 @@ def _canonical(mandate: Mandate) -> bytes:
 
 
 def sign_mandate(mandate: Mandate, secret: bytes) -> str:
-    """HMAC the canonical terms so stored mandates can't be silently edited."""
     return hmac.new(secret, _canonical(mandate), hashlib.sha256).hexdigest()
 
 
 def verify_mandate(mandate: Mandate, signature: str, secret: bytes) -> bool:
     return hmac.compare_digest(sign_mandate(mandate, secret), signature)
-
 
 
 @dataclass(frozen=True)
@@ -96,7 +94,7 @@ class CartItem:
 
 @dataclass(frozen=True)
 class ProposedAction:
-    kind: str  
+    kind: str
     items: tuple[CartItem, ...]
     currency: str = "USD"
     origin: str = "agent"
@@ -150,12 +148,10 @@ def evaluate(
     spent_cents: int = 0,
     now: Optional[datetime] = None,
 ) -> Decision:
-    
     now = now or datetime.now(timezone.utc)
     hits: list[RuleHit] = []
     block = lambda rid, msg: hits.append(RuleHit(rid, Outcome.BLOCK, msg))
     escalate = lambda rid, msg: hits.append(RuleHit(rid, Outcome.ESCALATE, msg))
-
 
     if now >= mandate.expires_at:
         block("R_EXPIRED", "Mandate has expired.")
@@ -209,14 +205,12 @@ def evaluate(
                     f"'{item.title}' ships in {item.delivery_days} days; limit is {mandate.max_delivery_days}.",
                 )
 
-
     if mandate.escalate_over_cents is not None and action.total_cents > mandate.escalate_over_cents:
         escalate(
             "R_STEP_UP",
             f"Total {_money(action.total_cents)} is over the {_money(mandate.escalate_over_cents)} "
             f"auto-approve threshold; human confirmation required.",
         )
-
 
     if any(h.outcome is Outcome.BLOCK for h in hits):
         outcome = Outcome.BLOCK

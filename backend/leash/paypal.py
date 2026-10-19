@@ -7,7 +7,7 @@ _token_cache = {"value": None, "expires_at": 0.0}
 
 
 def _base() -> str:
-    return getattr(settings, "PAYPAL_BASE_URL", "https://api-m.sandbox.paypal.com")
+    return settings.PAYPAL_BASE_URL
 
 
 def _access_token() -> str:
@@ -29,7 +29,7 @@ def _access_token() -> str:
 def _headers(request_id: str | None = None) -> dict:
     h = {"Authorization": f"Bearer {_access_token()}", "Content-Type": "application/json"}
     if request_id:
-        h["PayPal-Request-Id"] = request_id  
+        h["PayPal-Request-Id"] = request_id
     return h
 
 
@@ -39,7 +39,6 @@ def _fmt(cents: int) -> str:
 
 def create_order(*, amount_cents: int, currency: str, description: str, reference_id: str,
                  return_url: str, cancel_url: str) -> dict:
-    
     body = {
         "intent": "CAPTURE",
         "purchase_units": [{
