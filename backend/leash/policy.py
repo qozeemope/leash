@@ -31,6 +31,7 @@ class Mandate:
     min_merchant_rating: float = 0.0
     max_delivery_days: Optional[int] = None
     escalate_over_cents: Optional[int] = None
+    blocked_merchants: tuple[str, ...] = ()
 
     def to_dict(self) -> dict:
         return {
@@ -44,6 +45,7 @@ class Mandate:
             "min_merchant_rating": self.min_merchant_rating,
             "max_delivery_days": self.max_delivery_days,
             "escalate_over_cents": self.escalate_over_cents,
+            "blocked_merchants": sorted(_norm(m) for m in self.blocked_merchants),
         }
 
     @classmethod
@@ -62,6 +64,7 @@ class Mandate:
             min_merchant_rating=float(d.get("min_merchant_rating", 0.0)),
             max_delivery_days=d.get("max_delivery_days"),
             escalate_over_cents=d.get("escalate_over_cents"),
+            blocked_merchants=tuple(_norm(m) for m in d.get("blocked_merchants", [])),
         )
 
 
@@ -177,7 +180,10 @@ def evaluate(
         )
 
     allowed = {_norm(c) for c in mandate.allowed_categories}
+    blocked = {_norm(m) for m in mandate.blocked_merchants}
     for item in action.items:
+        if _norm(item.merchant) in blocked:
+            block("R_MERCHANT", f"Merchant '{item.merchant}' is on the blocked list.")
         if _norm(item.category) not in allowed:
             block("R_CATEGORY", f"'{item.title}' is category '{item.category}', which the mandate does not allow.")
 

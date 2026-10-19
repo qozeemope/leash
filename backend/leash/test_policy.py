@@ -117,6 +117,12 @@ class PolicyTests(unittest.TestCase):
         d = evaluate(socks_mandate(), checkout(sock_item(quantity=4, unit_price_cents=500)), now=NOW)
         self.assertEqual(d.outcome, Outcome.BLOCK)
         self.assertIn("R_ITEM_COUNT", [h.rule_id for h in d.hits])
+    
+    def test_blocked_merchant_is_blocked(self):
+        mandate = socks_mandate(blocked_merchants=("SockDepot",))
+        d = evaluate(mandate, checkout(sock_item(merchant="sockdepot")), now=NOW)
+        self.assertEqual(d.outcome, Outcome.BLOCK)
+        self.assertEqual([h.rule_id for h in d.hits], ["R_MERCHANT"])
 
 
 class SigningTests(unittest.TestCase):
@@ -135,6 +141,12 @@ class SigningTests(unittest.TestCase):
     def test_wrong_secret_fails(self):
         m = socks_mandate()
         self.assertFalse(verify_mandate(m, sign_mandate(m, SECRET), b"other"))
+    
+    def test_changing_blocked_merchants_invalidates_signature(self):
+        m = socks_mandate(blocked_merchants=("SockDepot",))
+        sig = sign_mandate(m, SECRET)
+        tampered = Mandate.from_dict({**m.to_dict(), "blocked_merchants": []})
+        self.assertFalse(verify_mandate(tampered, sig, SECRET))
 
 
 if __name__ == "__main__":
