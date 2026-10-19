@@ -23,7 +23,3 @@ cd frontend
 npm install
 npm run dev
 ```
-
-## Configuration
-
-Copy `.env.example` to `.env` and fill in values. `.env` is git-ignored.
