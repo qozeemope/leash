@@ -1,0 +1,577 @@
+openapi: 3.0.3
+info:
+  title: Leash API
+  version: 0.1.0
+  description: Spending mandates and policy decisions for AI shopping agents.
+paths:
+  /api/audit/{event_id}/resolve/:
+    post:
+      operationId: audit_resolve_create
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - audit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Resolve'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveResponse'
+          description: ''
+  /api/health/:
+    get:
+      operationId: health_retrieve
+      tags:
+      - health
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+          description: ''
+  /api/mandates/:
+    get:
+      operationId: mandates_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - mandates
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMandateList'
+          description: ''
+    post:
+      operationId: mandates_create
+      tags:
+      - mandates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MandateCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mandate'
+          description: ''
+  /api/mandates/{mandate_id}/:
+    get:
+      operationId: mandates_retrieve
+      parameters:
+      - in: path
+        name: mandate_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - mandates
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mandate'
+          description: ''
+  /api/mandates/{mandate_id}/audit/:
+    get:
+      operationId: mandates_audit_list
+      parameters:
+      - in: path
+        name: mandate_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - mandates
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditEventList'
+          description: ''
+  /api/mandates/{mandate_id}/propose/:
+    post:
+      operationId: mandates_propose_create
+      parameters:
+      - in: path
+        name: mandate_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - mandates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Proposal'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProposalResponse'
+          description: ''
+  /api/orders/{paypal_order_id}/capture/:
+    post:
+      operationId: orders_capture_create
+      parameters:
+      - in: path
+        name: paypal_order_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureResponse'
+          description: ''
+components:
+  schemas:
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/AuditEventKindEnum'
+          readOnly: true
+        outcome:
+          allOf:
+          - $ref: '#/components/schemas/AuditEventOutcomeEnum'
+          readOnly: true
+        rule_hits:
+          readOnly: true
+        payload:
+          readOnly: true
+        resolution:
+          allOf:
+          - $ref: '#/components/schemas/AuditEventResolutionEnum'
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - kind
+      - outcome
+      - payload
+      - resolution
+      - rule_hits
+    AuditEventKindEnum:
+      enum:
+      - proposal
+      - order_created
+      - order_captured
+      type: string
+      description: |-
+        * `proposal` - Proposal
+        * `order_created` - Order created
+        * `order_captured` - Order captured
+    AuditEventOutcomeEnum:
+      enum:
+      - approve
+      - escalate
+      - block
+      type: string
+      description: |-
+        * `approve` - Approve
+        * `escalate` - Escalate
+        * `block` - Block
+    AuditEventResolutionEnum:
+      enum:
+      - open
+      - approved
+      - denied
+      - n/a
+      type: string
+      description: |-
+        * `open` - Open
+        * `approved` - Approved
+        * `denied` - Denied
+        * `n/a` - Not applicable
+    CaptureResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/CaptureResponseStatusEnum'
+      required:
+      - status
+    CaptureResponseStatusEnum:
+      enum:
+      - created
+      - completed
+      - failed
+      type: string
+      description: |-
+        * `created` - created
+        * `completed` - completed
+        * `failed` - failed
+    CartItem:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 64
+        unit_price_cents:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+        quantity:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 1
+        merchant:
+          type: string
+          default: unknown
+          maxLength: 128
+        merchant_rating:
+          type: number
+          format: double
+          maximum: 5
+          minimum: 0
+          nullable: true
+        delivery_days:
+          type: integer
+          maximum: 365
+          minimum: 0
+          nullable: true
+      required:
+      - category
+      - title
+      - unit_price_cents
+    DecisionEnum:
+      enum:
+      - approve
+      - deny
+      type: string
+      description: |-
+        * `approve` - approve
+        * `deny` - deny
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthResponseStatusEnum'
+      required:
+      - status
+    HealthResponseStatusEnum:
+      enum:
+      - ok
+      - unavailable
+      type: string
+      description: |-
+        * `ok` - ok
+        * `unavailable` - unavailable
+    Mandate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        raw_text:
+          type: string
+          readOnly: true
+        terms:
+          readOnly: true
+        spent_cents:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - raw_text
+      - spent_cents
+      - terms
+    MandateCreate:
+      type: object
+      properties:
+        raw_text:
+          type: string
+          default: ''
+          maxLength: 2000
+        terms:
+          $ref: '#/components/schemas/MandateTerms'
+      required:
+      - terms
+    MandateTerms:
+      type: object
+      properties:
+        currency:
+          type: string
+          pattern: ^[A-Za-z]{3}$
+        budget_cents:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+        expires_at:
+          type: string
+          format: date-time
+        allowed_categories:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 20
+          minItems: 1
+        per_item_cap_cents:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+        max_items:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 5
+        min_merchant_rating:
+          type: number
+          format: double
+          maximum: 5
+          minimum: 0
+          default: 0.0
+        max_delivery_days:
+          type: integer
+          maximum: 365
+          minimum: 0
+          nullable: true
+        escalate_over_cents:
+          type: integer
+          maximum: 10000000
+          minimum: 1
+          nullable: true
+        blocked_merchants:
+          type: array
+          items:
+            type: string
+            maxLength: 128
+          maxItems: 100
+      required:
+      - allowed_categories
+      - budget_cents
+      - currency
+      - expires_at
+      - per_item_cap_cents
+    OriginEnum:
+      enum:
+      - agent
+      - untrusted_content
+      type: string
+      description: |-
+        * `agent` - agent
+        * `untrusted_content` - untrusted_content
+    PaginatedAuditEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+    PaginatedMandateList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mandate'
+    Proposal:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/ProposalKindEnum'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        currency:
+          type: string
+          default: USD
+          pattern: ^[A-Za-z]{3}$
+        origin:
+          allOf:
+          - $ref: '#/components/schemas/OriginEnum'
+          default: agent
+        agent_reason:
+          type: string
+          default: ''
+          maxLength: 1000
+      required:
+      - items
+      - kind
+    ProposalKindEnum:
+      enum:
+      - add_to_cart
+      - checkout
+      type: string
+      description: |-
+        * `add_to_cart` - add_to_cart
+        * `checkout` - checkout
+    ProposalResponse:
+      type: object
+      properties:
+        outcome:
+          $ref: '#/components/schemas/ProposalResponseOutcomeEnum'
+        reasons:
+          type: array
+          items:
+            type: string
+        event_id:
+          type: integer
+        paypal_order_id:
+          type: string
+        approve_url:
+          type: string
+          format: uri
+      required:
+      - event_id
+      - outcome
+    ProposalResponseOutcomeEnum:
+      enum:
+      - approve
+      - escalate
+      - block
+      type: string
+      description: |-
+        * `approve` - approve
+        * `escalate` - escalate
+        * `block` - block
+    Resolve:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionEnum'
+      required:
+      - decision
+    ResolveResponse:
+      type: object
+      properties:
+        resolution:
+          $ref: '#/components/schemas/ResolveResponseResolutionEnum'
+        reasons:
+          type: array
+          items:
+            type: string
+        paypal_order_id:
+          type: string
+        approve_url:
+          type: string
+          format: uri
+      required:
+      - resolution
+    ResolveResponseResolutionEnum:
+      enum:
+      - approved
+      - denied
+      type: string
+      description: |-
+        * `approved` - approved
+        * `denied` - denied
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
