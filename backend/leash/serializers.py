@@ -2,6 +2,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from .accounts import is_demo
 from .models import AuditEvent, MandateRecord, PayPalOrder
 from .policy import CartItem, Outcome, ProposedAction
 
@@ -114,6 +115,26 @@ class ResolveResponseSerializer(serializers.Serializer):
 
 class CaptureResponseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[value for value, _ in PayPalOrder.STATUSES])
+
+
+class DetailSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(max_length=128, trim_whitespace=False, write_only=True)
+
+
+class UserSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(read_only=True)
+    is_demo = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_demo(self, obj):
+        return is_demo(obj)
+
 
 class HealthResponseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=["ok", "unavailable"])

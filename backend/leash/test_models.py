@@ -42,6 +42,16 @@ class SpentCentsTests(TestCase):
         self.order("C", 500, PayPalOrder.FAILED)
         self.assertEqual(self.record.spent_cents(), 3000)
 
+    def test_pending_and_capturing_orders_hold_budget(self):
+        self.order("E", 1000, PayPalOrder.PENDING)
+        self.order("F", 500, PayPalOrder.CAPTURING)
+        self.assertEqual(self.record.spent_cents(), 1500)
+
+    def test_several_reservations_may_lack_a_paypal_id(self):
+        for _ in range(2):
+            PayPalOrder.objects.create(mandate=self.record, amount_cents=100, currency="USD")
+        self.assertEqual(self.record.spent_cents(), 200)
+
     def test_zero_amount_is_rejected_by_the_database(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
             self.order("D", 0, PayPalOrder.CREATED)

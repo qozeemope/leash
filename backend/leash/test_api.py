@@ -4,6 +4,7 @@ from unittest.mock import patch
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
@@ -50,6 +51,7 @@ def proposal(*items, **overrides):
 @override_settings(SECURE_SSL_REDIRECT=False)
 class ApiTestCase(APITestCase):
     def setUp(self):
+        cache.clear()
         users = get_user_model().objects
         self.user = users.create_user("alice", password="a-long-test-password")
         self.other = users.create_user("bob", password="a-long-test-password")
@@ -153,12 +155,30 @@ class ProposalTests(ApiTestCase):
         self.assertEqual(response.data["outcome"], "block")
         self.assertIn("signature", response.data["reasons"][0].lower())
 
-    def test_payment_provider_failure_returns_502_envelope(self):
-        mandate_id = self.make_mandate()
+    def test_payment_provider_failure_returns_502_and_releases_the_budget(self):
+        mandate_id = self.make_mandate(per_item_cap_cents=5000)
+        big_item = sock(unit_price_cents=4000)
         with patch("leash.paypal.create_order", side_effect=requests.ConnectionError()):
-            response = self.propose(mandate_id, proposal(sock()))
+            response = self.propose(mandate_id, proposal(big_item))
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.data["error"]["code"], "upstream_error")
+        self.assertEqual(PayPalOrder.objects.get().status, PayPalOrder.FAILED)
+        self.assertTrue(AuditEvent.objects.filter(kind="order_failed").exists())
+
+        with patch("leash.paypal.create_order", return_value=PAYPAL_ORDER):
+            retry = self.propose(mandate_id, proposal(big_item))
+        self.assertEqual(retry.data["outcome"], "approve")
+
+    def test_pending_reservation_counts_against_the_budget(self):
+        mandate_id = self.make_mandate()
+        PayPalOrder.objects.create(
+            mandate_id=mandate_id, amount_cents=4000, currency="USD", status=PayPalOrder.PENDING
+        )
+        with patch("leash.paypal.create_order") as create_order:
+            response = self.propose(mandate_id, proposal(sock(unit_price_cents=4000)))
+        self.assertEqual(response.data["outcome"], "block")
+        self.assertIn("R_BUDGET", [h["rule_id"] for h in AuditEvent.objects.get().rule_hits])
+        create_order.assert_not_called()
 
     def test_audit_log_is_paginated(self):
         mandate_id = self.make_mandate()
@@ -207,6 +227,26 @@ class CaptureTests(ApiTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["status"], "completed")
         self.assertTrue(AuditEvent.objects.filter(kind="order_captured").exists())
+
+    def test_capture_already_in_flight_is_not_repeated(self):
+        order = self.approved_order()
+        PayPalOrder.objects.filter(pk=order.pk).update(status=PayPalOrder.CAPTURING)
+        with patch("leash.paypal.capture_order") as capture:
+            response = self.client.post(f"/api/orders/{order.paypal_order_id}/capture/")
+        capture.assert_not_called()
+        self.assertEqual(response.data["status"], "capturing")
+
+    def test_network_error_during_capture_can_be_retried(self):
+        order = self.approved_order()
+        url = f"/api/orders/{order.paypal_order_id}/capture/"
+        with patch("leash.paypal.capture_order", side_effect=requests.ConnectionError()):
+            first = self.client.post(url)
+        self.assertEqual(first.status_code, 502)
+        order.refresh_from_db()
+        self.assertEqual(order.status, PayPalOrder.CREATED)
+        with patch("leash.paypal.capture_order", return_value={"status": "COMPLETED"}):
+            second = self.client.post(url)
+        self.assertEqual(second.data["status"], "completed")
 
     def test_other_user_cannot_capture(self):
         order = self.approved_order()

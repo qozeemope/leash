@@ -62,8 +62,8 @@ def create_order(*, amount_cents: int, currency: str, description: str, referenc
     return {"id": data["id"], "approve_url": approve_url, "status": data["status"]}
 
 
-def capture_order(paypal_order_id: str) -> dict:
+def capture_order(paypal_order_id: str, request_id: str | None = None) -> dict:
     resp = requests.post(f"{_base()}/v2/checkout/orders/{paypal_order_id}/capture",
-                         headers=_headers(), timeout=20)
+                         headers=_headers(request_id=request_id), timeout=20)
     resp.raise_for_status()
     return resp.json()

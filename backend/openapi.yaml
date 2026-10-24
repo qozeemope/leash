@@ -30,6 +30,81 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResolveResponse'
           description: ''
+  /api/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Detail'
+          description: ''
+  /api/auth/demo/:
+    post:
+      operationId: auth_demo_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
   /api/health/:
     get:
       operationId: health_retrieve
@@ -316,6 +391,13 @@ components:
       description: |-
         * `approve` - approve
         * `deny` - deny
+    Detail:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     HealthResponse:
       type: object
       properties:
@@ -331,6 +413,19 @@ components:
       description: |-
         * `ok` - ok
         * `unavailable` - unavailable
+    Login:
+      type: object
+      properties:
+        username:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+      required:
+      - password
+      - username
     Mandate:
       type: object
       properties:
@@ -570,6 +665,22 @@ components:
       description: |-
         * `approved` - approved
         * `denied` - denied
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+        is_demo:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - is_demo
+      - username
   securitySchemes:
     cookieAuth:
       type: apiKey

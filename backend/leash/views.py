@@ -3,7 +3,7 @@ import uuid
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
 
 from . import services
@@ -19,6 +19,7 @@ from .serializers import (
     ResolveResponseSerializer,
     ResolveSerializer,
 )
+from .throttles import ProposeThrottle
 
 
 class MandateListCreateView(generics.ListCreateAPIView):
@@ -57,6 +58,7 @@ class AuditLogView(generics.ListAPIView):
 
 @extend_schema(request=ProposalSerializer, responses=ProposalResponseSerializer)
 @api_view(["POST"])
+@throttle_classes([ProposeThrottle])
 def propose(request, mandate_id):
     record = get_object_or_404(MandateRecord, pk=mandate_id, owner=request.user)
     serializer = ProposalSerializer(data=request.data)

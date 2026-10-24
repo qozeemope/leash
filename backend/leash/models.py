@@ -25,7 +25,7 @@ class MandateRecord(models.Model):
         return Mandate.from_dict(self.terms)
 
     def spent_cents(self) -> int:
-        committed = [PayPalOrder.CREATED, PayPalOrder.COMPLETED]
+        committed = [PayPalOrder.PENDING, PayPalOrder.CREATED, PayPalOrder.CAPTURING, PayPalOrder.COMPLETED]
         total = self.orders.filter(status__in=committed).aggregate(total=Sum("amount_cents"))["total"]
         return total or 0
 
@@ -36,6 +36,7 @@ class AuditEvent(models.Model):
     KINDS = [
         ("proposal", "Proposal"),
         ("order_created", "Order created"),
+        ("order_failed", "Order failed"),
         ("order_captured", "Order captured"),
     ]
     OUTCOMES = [(o.value, o.name.title()) for o in Outcome]
@@ -58,16 +59,23 @@ class AuditEvent(models.Model):
 
 
 class PayPalOrder(models.Model):
-    CREATED, COMPLETED, FAILED = "created", "completed", "failed"
-    STATUSES = [(CREATED, "Created"), (COMPLETED, "Completed"), (FAILED, "Failed")]
+    PENDING, CREATED, CAPTURING, COMPLETED, FAILED = "pending", "created", "capturing", "completed", "failed"
+    STATUSES = [
+        (PENDING, "Pending"),
+        (CREATED, "Created"),
+        (CAPTURING, "Capturing"),
+        (COMPLETED, "Completed"),
+        (FAILED, "Failed"),
+    ]
 
     id = models.BigAutoField(primary_key=True)
     mandate = models.ForeignKey(MandateRecord, on_delete=models.CASCADE, related_name="orders")
-    paypal_order_id = models.CharField(max_length=64, unique=True)
+    reference = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    paypal_order_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
     amount_cents = models.PositiveIntegerField()
     currency = models.CharField(max_length=3)
     approve_url = models.URLField(max_length=500, blank=True)
-    status = models.CharField(max_length=16, choices=STATUSES, default=CREATED)
+    status = models.CharField(max_length=16, choices=STATUSES, default=PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -78,4 +86,4 @@ class PayPalOrder(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.paypal_order_id} {self.status}"
+        return f"{self.paypal_order_id or self.reference} {self.status}"

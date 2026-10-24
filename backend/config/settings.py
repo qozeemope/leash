@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -29,6 +30,7 @@ if render_host:
     ALLOWED_HOSTS.append(render_host)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+DEMO_MODE = env_bool("DEMO_MODE", False)
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 
 PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID", "")
@@ -95,6 +97,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+if "test" in sys.argv:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
@@ -118,6 +123,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "leash.api_errors.api_exception_handler",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "120/min",
+        "user": "300/min",
+        "login": "20/min",
+        "demo": "60/hour",
+        "propose": "60/min",
+    },
+    "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "1")),
 }
 
 SPECTACULAR_SETTINGS = {
@@ -126,6 +143,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 2
+CSRF_COOKIE_SAMESITE = "Lax"
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
