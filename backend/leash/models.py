@@ -1,8 +1,10 @@
 import uuid
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
 from django.db.models import Q, Sum
+from django.utils import timezone
 
 from .policy import Mandate, Outcome
 
@@ -24,9 +26,14 @@ class MandateRecord(models.Model):
     def to_policy(self) -> Mandate:
         return Mandate.from_dict(self.terms)
 
-    def spent_cents(self) -> int:
-        committed = [PayPalOrder.PENDING, PayPalOrder.CREATED, PayPalOrder.CAPTURING, PayPalOrder.COMPLETED]
-        total = self.orders.filter(status__in=committed).aggregate(total=Sum("amount_cents"))["total"]
+    def spent_cents(self, now=None) -> int:
+        now = now or timezone.now()
+        counted = (
+            Q(status__in=[PayPalOrder.CAPTURING, PayPalOrder.COMPLETED])
+            | Q(status=PayPalOrder.PENDING, created_at__gte=PayPalOrder.pending_cutoff(now))
+            | Q(status=PayPalOrder.CREATED, created_at__gte=PayPalOrder.approval_cutoff(now))
+        )
+        total = self.orders.filter(counted).aggregate(total=Sum("amount_cents"))["total"]
         return total or 0
 
 
@@ -37,6 +44,7 @@ class AuditEvent(models.Model):
         ("proposal", "Proposal"),
         ("order_created", "Order created"),
         ("order_failed", "Order failed"),
+        ("order_expired", "Order expired"),
         ("order_captured", "Order captured"),
     ]
     OUTCOMES = [(o.value, o.name.title()) for o in Outcome]
@@ -59,13 +67,21 @@ class AuditEvent(models.Model):
 
 
 class PayPalOrder(models.Model):
-    PENDING, CREATED, CAPTURING, COMPLETED, FAILED = "pending", "created", "capturing", "completed", "failed"
+    PENDING, CREATED, CAPTURING, COMPLETED, FAILED, EXPIRED = (
+        "pending",
+        "created",
+        "capturing",
+        "completed",
+        "failed",
+        "expired",
+    )
     STATUSES = [
         (PENDING, "Pending"),
         (CREATED, "Created"),
         (CAPTURING, "Capturing"),
         (COMPLETED, "Completed"),
         (FAILED, "Failed"),
+        (EXPIRED, "Expired"),
     ]
 
     id = models.BigAutoField(primary_key=True)
@@ -87,3 +103,19 @@ class PayPalOrder(models.Model):
 
     def __str__(self) -> str:
         return f"{self.paypal_order_id or self.reference} {self.status}"
+
+    @staticmethod
+    def pending_cutoff(now):
+        return now - timedelta(minutes=settings.ORDER_PENDING_TTL_MINUTES)
+
+    @staticmethod
+    def approval_cutoff(now):
+        return now - timedelta(minutes=settings.ORDER_APPROVAL_TTL_MINUTES)
+
+    def is_expired(self, now=None) -> bool:
+        now = now or timezone.now()
+        if self.status == self.PENDING:
+            return self.created_at < self.pending_cutoff(now)
+        if self.status == self.CREATED:
+            return self.created_at < self.approval_cutoff(now)
+        return False

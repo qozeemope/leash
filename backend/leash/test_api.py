@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import requests
 from django.conf import settings
@@ -247,6 +247,18 @@ class CaptureTests(ApiTestCase):
         with patch("leash.paypal.capture_order", return_value={"status": "COMPLETED"}):
             second = self.client.post(url)
         self.assertEqual(second.data["status"], "completed")
+
+    def test_capture_before_buyer_approval_returns_409(self):
+        order = self.approved_order()
+        provider_response = Mock()
+        provider_response.json.return_value = {"details": [{"issue": "ORDER_NOT_APPROVED"}]}
+        error = requests.HTTPError(response=provider_response)
+        with patch("leash.paypal.capture_order", side_effect=error):
+            response = self.client.post(f"/api/orders/{order.paypal_order_id}/capture/")
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["error"]["code"], "order_not_approved")
+        order.refresh_from_db()
+        self.assertEqual(order.status, PayPalOrder.CREATED)
 
     def test_other_user_cannot_capture(self):
         order = self.approved_order()

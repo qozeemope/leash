@@ -1,8 +1,10 @@
+import logging
 import uuid
 
 import requests
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.exceptions import APIException, NotFound
 
 from . import paypal
@@ -10,11 +12,45 @@ from .models import AuditEvent, MandateRecord, PayPalOrder
 from .policy import Mandate, Outcome, ProposedAction, evaluate, sign_mandate, verify_mandate
 from .serializers import ProposalSerializer
 
+logger = logging.getLogger(__name__)
+
 
 class UpstreamError(APIException):
     status_code = 502
     default_detail = "The payment provider could not complete the request."
     default_code = "upstream_error"
+
+
+class OrderNotApproved(APIException):
+    status_code = 409
+    default_detail = "The buyer has not approved this order on PayPal yet."
+    default_code = "order_not_approved"
+
+
+def _provider_issue(exc: requests.HTTPError) -> str:
+    try:
+        return exc.response.json()["details"][0]["issue"]
+    except (AttributeError, ValueError, KeyError, IndexError, TypeError):
+        return ""
+
+
+class OrderExpired(APIException):
+    status_code = 410
+    default_detail = "This order expired before it was approved. Start a new checkout."
+    default_code = "order_expired"
+
+
+class PaymentDeclined(APIException):
+    status_code = 409
+    default_detail = "PayPal declined the payment. The buyer can try again with another payment method."
+    default_code = "payment_declined"
+
+
+def _describe(exc: Exception) -> str:
+    response = getattr(exc, "response", None)
+    if response is not None:
+        return f"HTTP {response.status_code}: {response.text}"
+    return repr(exc)
 
 
 def _signing_key() -> bytes:
@@ -81,6 +117,7 @@ def _place_order(order: PayPalOrder, action: ProposedAction) -> None:
             cancel_url=f"{settings.FRONTEND_URL}/checkout/cancel",
         )
     except (requests.RequestException, KeyError) as exc:
+        logger.error("PayPal create_order failed: %s", _describe(exc))
         order.status = PayPalOrder.FAILED
         order.save(update_fields=["status"])
         AuditEvent.objects.create(
@@ -182,29 +219,95 @@ def resolve_escalation(event: AuditEvent, decision: str) -> dict:
     return result
 
 
-def capture_order(order: PayPalOrder) -> PayPalOrder:
-    if order.status == PayPalOrder.COMPLETED:
-        return order
+def _expire(order: PayPalOrder, from_status: str) -> bool:
+    changed = PayPalOrder.objects.filter(pk=order.pk, status=from_status).update(status=PayPalOrder.EXPIRED)
+    if changed:
+        AuditEvent.objects.create(
+            mandate=order.mandate,
+            kind="order_expired",
+            payload={"reference": str(order.reference)},
+        )
+    return bool(changed)
 
-    claimed = PayPalOrder.objects.filter(pk=order.pk, status=PayPalOrder.CREATED).update(
-        status=PayPalOrder.CAPTURING
-    )
-    if not claimed:
-        order.refresh_from_db()
-        return order
 
-    try:
-        result = paypal.capture_order(order.paypal_order_id, request_id=str(order.reference))
-    except (requests.RequestException, KeyError) as exc:
-        PayPalOrder.objects.filter(pk=order.pk).update(status=PayPalOrder.CREATED)
-        raise UpstreamError() from exc
-
-    completed = result.get("status") == "COMPLETED"
-    order.status = PayPalOrder.COMPLETED if completed else PayPalOrder.FAILED
+def _finish_capture(order: PayPalOrder, remote_status: str) -> PayPalOrder:
+    order.status = PayPalOrder.COMPLETED if remote_status == "COMPLETED" else PayPalOrder.FAILED
     order.save(update_fields=["status"])
     AuditEvent.objects.create(
         mandate=order.mandate,
         kind="order_captured",
-        payload={"paypal_order_id": order.paypal_order_id, "status": result.get("status")},
+        payload={"paypal_order_id": order.paypal_order_id, "status": remote_status},
     )
     return order
+
+
+def capture_order(order: PayPalOrder) -> PayPalOrder:
+    if order.status == PayPalOrder.COMPLETED:
+        return order
+
+    cutoff = PayPalOrder.approval_cutoff(timezone.now())
+    claimed = PayPalOrder.objects.filter(
+        pk=order.pk, status=PayPalOrder.CREATED, created_at__gte=cutoff
+    ).update(status=PayPalOrder.CAPTURING)
+    if not claimed:
+        order.refresh_from_db()
+        if order.status == PayPalOrder.CREATED:
+            _expire(order, PayPalOrder.CREATED)
+            raise OrderExpired()
+        return order
+
+    try:
+        result = paypal.capture_order(order.paypal_order_id, request_id=str(order.reference))
+    except requests.HTTPError as exc:
+        issue = _provider_issue(exc)
+        if issue == "ORDER_ALREADY_CAPTURED":
+            return _finish_capture(order, "COMPLETED")
+        PayPalOrder.objects.filter(pk=order.pk).update(status=PayPalOrder.CREATED)
+        if issue == "ORDER_NOT_APPROVED":
+            raise OrderNotApproved() from exc
+        if issue == "INSTRUMENT_DECLINED":
+            raise PaymentDeclined() from exc
+        logger.error("PayPal capture failed: %s", _describe(exc))
+        raise UpstreamError() from exc
+    except (requests.RequestException, KeyError) as exc:
+        PayPalOrder.objects.filter(pk=order.pk).update(status=PayPalOrder.CREATED)
+        logger.error("PayPal capture failed: %s", _describe(exc))
+        raise UpstreamError() from exc
+
+    return _finish_capture(order, result.get("status"))
+
+
+def expire_stale_orders(now=None) -> int:
+    now = now or timezone.now()
+    expired = 0
+    stages = (
+        (PayPalOrder.PENDING, PayPalOrder.pending_cutoff(now)),
+        (PayPalOrder.CREATED, PayPalOrder.approval_cutoff(now)),
+    )
+    for status, cutoff in stages:
+        stale = PayPalOrder.objects.filter(status=status, created_at__lt=cutoff).select_related("mandate")
+        for order in stale:
+            if _expire(order, status):
+                expired += 1
+    return expired
+
+
+def reconcile_capturing() -> dict:
+    counts = {"completed": 0, "released": 0, "unchanged": 0}
+    for order in PayPalOrder.objects.filter(status=PayPalOrder.CAPTURING).select_related("mandate"):
+        try:
+            remote_status = paypal.get_order(order.paypal_order_id).get("status")
+        except (requests.RequestException, KeyError):
+            counts["unchanged"] += 1
+            continue
+        if remote_status == "COMPLETED":
+            _finish_capture(order, "COMPLETED")
+            counts["completed"] += 1
+        elif remote_status == "APPROVED":
+            PayPalOrder.objects.filter(pk=order.pk, status=PayPalOrder.CAPTURING).update(
+                status=PayPalOrder.CREATED
+            )
+            counts["released"] += 1
+        else:
+            counts["unchanged"] += 1
+    return counts

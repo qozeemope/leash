@@ -47,8 +47,11 @@ def create_order(*, amount_cents: int, currency: str, description: str, referenc
             "amount": {"currency_code": currency.upper(), "value": _fmt(amount_cents)},
         }],
         "payment_source": {"paypal": {"experience_context": {
+            "brand_name": "Leash",
+            "shipping_preference": "NO_SHIPPING",
             "return_url": return_url,
             "cancel_url": cancel_url,
+            "brand_name": "Leash",
             "user_action": "PAY_NOW",
         }}},
     }
@@ -65,5 +68,11 @@ def create_order(*, amount_cents: int, currency: str, description: str, referenc
 def capture_order(paypal_order_id: str, request_id: str | None = None) -> dict:
     resp = requests.post(f"{_base()}/v2/checkout/orders/{paypal_order_id}/capture",
                          headers=_headers(request_id=request_id), timeout=20)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_order(paypal_order_id: str) -> dict:
+    resp = requests.get(f"{_base()}/v2/checkout/orders/{paypal_order_id}", headers=_headers(), timeout=20)
     resp.raise_for_status()
     return resp.json()

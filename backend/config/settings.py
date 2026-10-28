@@ -31,6 +31,8 @@ if render_host:
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 DEMO_MODE = env_bool("DEMO_MODE", False)
+ORDER_PENDING_TTL_MINUTES = int(os.environ.get("ORDER_PENDING_TTL_MINUTES", "15"))
+ORDER_APPROVAL_TTL_MINUTES = int(os.environ.get("ORDER_APPROVAL_TTL_MINUTES", "180"))
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 
 PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID", "")
@@ -110,6 +112,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"leash": {"handlers": ["console"], "level": "INFO"}},
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
