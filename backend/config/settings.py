@@ -31,6 +31,13 @@ if render_host:
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 DEMO_MODE = env_bool("DEMO_MODE", False)
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "gemini")
+LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "")
+LLM_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "30"))
+LLM_MAX_OUTPUT_TOKENS = int(os.environ.get("LLM_MAX_OUTPUT_TOKENS", "2048"))
+LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "2"))
+LLM_DAILY_TOKEN_BUDGET = int(os.environ.get("LLM_DAILY_TOKEN_BUDGET", "500000"))
 ORDER_PENDING_TTL_MINUTES = int(os.environ.get("ORDER_PENDING_TTL_MINUTES", "15"))
 ORDER_APPROVAL_TTL_MINUTES = int(os.environ.get("ORDER_APPROVAL_TTL_MINUTES", "180"))
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
@@ -142,6 +149,7 @@ REST_FRAMEWORK = {
         "login": "20/min",
         "demo": "60/hour",
         "propose": "60/min",
+        "ai_parse": "30/hour",
     },
     "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "1")),
 }

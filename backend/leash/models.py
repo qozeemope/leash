@@ -119,3 +119,16 @@ class PayPalOrder(models.Model):
         if self.status == self.CREATED:
             return self.created_at < self.approval_cutoff(now)
         return False
+
+
+class LLMUsage(models.Model):
+    day = models.DateField(unique=True)
+    calls = models.PositiveIntegerField(default=0)
+    input_tokens = models.PositiveBigIntegerField(default=0)
+    output_tokens = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-day"]
+
+    def __str__(self) -> str:
+        return f"{self.day}: {self.calls} calls"

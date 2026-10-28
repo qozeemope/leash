@@ -11,6 +11,7 @@ urlpatterns = [
     path("auth/me/", auth_views.me),
     path("auth/demo/", auth_views.demo),
     path("mandates/", views.MandateListCreateView.as_view()),
+    path("mandates/parse/", views.parse_mandate),
     path("mandates/<uuid:mandate_id>/", views.MandateDetailView.as_view()),
     path("mandates/<uuid:mandate_id>/propose/", views.propose),
     path("mandates/<uuid:mandate_id>/audit/", views.AuditLogView.as_view()),

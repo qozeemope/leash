@@ -16,3 +16,7 @@ class DemoThrottle(IPRateThrottle):
 
 class ProposeThrottle(UserRateThrottle):
     scope = "propose"
+
+
+class ParseThrottle(UserRateThrottle):
+    scope = "ai_parse"

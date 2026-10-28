@@ -2,7 +2,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin
 
-from .models import AuditEvent, MandateRecord, PayPalOrder
+from .models import AuditEvent, LLMUsage, MandateRecord, PayPalOrder
 from .policy import Mandate, sign_mandate
 
 
@@ -60,3 +60,8 @@ class AuditEventAdmin(ReadOnlyAdmin):
 class PayPalOrderAdmin(ReadOnlyAdmin):
     list_display = ("paypal_order_id", "mandate", "amount_cents", "currency", "status", "created_at")
     list_filter = ("status",)
+
+
+@admin.register(LLMUsage)
+class LLMUsageAdmin(ReadOnlyAdmin):
+    list_display = ("day", "calls", "input_tokens", "output_tokens")

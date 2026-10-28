@@ -6,20 +6,22 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
 
-from . import services
+from . import mandate_parser, services
 from .models import AuditEvent, MandateRecord, PayPalOrder
 from .policy import Outcome
 from .serializers import (
     AuditEventSerializer,
     CaptureResponseSerializer,
     MandateCreateSerializer,
+    MandateParseRequestSerializer,
+    MandateParseResponseSerializer,
     MandateSerializer,
     ProposalResponseSerializer,
     ProposalSerializer,
     ResolveResponseSerializer,
     ResolveSerializer,
 )
-from .throttles import ProposeThrottle
+from .throttles import ParseThrottle, ProposeThrottle
 
 
 class MandateListCreateView(generics.ListCreateAPIView):
@@ -92,3 +94,13 @@ def capture(request, paypal_order_id):
     )
     order = services.capture_order(order)
     return Response({"status": order.status})
+
+
+@extend_schema(request=MandateParseRequestSerializer, responses=MandateParseResponseSerializer)
+@api_view(["POST"])
+@throttle_classes([ParseThrottle])
+def parse_mandate(request):
+    serializer = MandateParseRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    parsed = mandate_parser.parse_mandate(serializer.validated_data["text"])
+    return Response(parsed.to_dict())

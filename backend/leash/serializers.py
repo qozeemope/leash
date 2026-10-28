@@ -138,3 +138,15 @@ class UserSerializer(serializers.Serializer):
 
 class HealthResponseSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=["ok", "unavailable"])
+
+
+class MandateParseRequestSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=1000)
+
+
+class MandateParseResponseSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["ready", "needs_clarification"])
+    terms = serializers.JSONField(allow_null=True)
+    summary = serializers.ListField(child=serializers.CharField())
+    assumptions = serializers.ListField(child=serializers.CharField())
+    questions = serializers.ListField(child=serializers.CharField())
