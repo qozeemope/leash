@@ -54,6 +54,9 @@ class CartItemSerializer(serializers.Serializer):
     merchant = serializers.CharField(max_length=128, default="unknown")
     merchant_rating = serializers.FloatField(min_value=0, max_value=5, allow_null=True, default=None)
     delivery_days = serializers.IntegerField(min_value=0, max_value=365, allow_null=True, default=None)
+    category_path = serializers.ListField(
+        child=serializers.CharField(max_length=80), max_length=12, default=list
+    )
 
 
 class ProposalSerializer(serializers.Serializer):
@@ -67,7 +70,7 @@ class ProposalSerializer(serializers.Serializer):
         data = self.validated_data
         return ProposedAction(
             kind=data["kind"],
-            items=tuple(CartItem(**item) for item in data["items"]),
+            items=tuple(CartItem(**{**item, "category_path": tuple(item["category_path"])}) for item in data["items"]),
             currency=data["currency"].upper(),
             origin=data["origin"],
             agent_reason=data["agent_reason"],

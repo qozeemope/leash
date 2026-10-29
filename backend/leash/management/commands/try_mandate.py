@@ -1,7 +1,5 @@
 import json
-
 from django.core.management.base import BaseCommand, CommandError
-
 from leash import mandate_parser
 from leash.llm import LLMError
 
@@ -13,6 +11,7 @@ class Command(BaseCommand):
         parser.add_argument("text")
 
     def handle(self, *args, **options):
+        self.stdout.write(f"Input: {options['text']}")
         try:
             parsed = mandate_parser.parse_mandate(options["text"])
         except LLMError as exc:

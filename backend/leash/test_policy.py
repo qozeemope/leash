@@ -117,12 +117,46 @@ class PolicyTests(unittest.TestCase):
         d = evaluate(socks_mandate(), checkout(sock_item(quantity=4, unit_price_cents=500)), now=NOW)
         self.assertEqual(d.outcome, Outcome.BLOCK)
         self.assertIn("R_ITEM_COUNT", [h.rule_id for h in d.hits])
-    
+
     def test_blocked_merchant_is_blocked(self):
         mandate = socks_mandate(blocked_merchants=("SockDepot",))
         d = evaluate(mandate, checkout(sock_item(merchant="sockdepot")), now=NOW)
         self.assertEqual(d.outcome, Outcome.BLOCK)
         self.assertEqual([h.rule_id for h in d.hits], ["R_MERCHANT"])
+
+    def test_blocked_merchant_matches_store_domains(self):
+        mandate = socks_mandate(blocked_merchants=("SockDepot", "Run Co"))
+        for merchant in ("sockdepot.com", "www.sock-depot.co.uk", "runco.com"):
+            with self.subTest(merchant=merchant):
+                d = evaluate(mandate, checkout(sock_item(merchant=merchant)), now=NOW)
+                self.assertEqual(d.outcome, Outcome.BLOCK)
+                self.assertEqual([h.rule_id for h in d.hits], ["R_MERCHANT"])
+
+    def test_similar_looking_merchants_are_not_blocked(self):
+        mandate = socks_mandate(blocked_merchants=("SockDepot",))
+        for merchant in ("rundepot.com", "depot.com", "sockshop.com"):
+            with self.subTest(merchant=merchant):
+                d = evaluate(mandate, checkout(sock_item(merchant=merchant)), now=NOW)
+                self.assertEqual(d.outcome, Outcome.APPROVE)
+
+    def test_category_path_lets_a_parent_category_cover_its_subcategories(self):
+        path = ("apparel & accessories", "clothing", "underwear & socks", "socks", "athletic socks")
+        item = sock_item(category="athletic socks", category_path=path)
+        for allowed in (("socks",), ("sock",), ("clothing",), ("Athletic Socks",)):
+            with self.subTest(allowed=allowed):
+                d = evaluate(socks_mandate(allowed_categories=allowed), checkout(item), now=NOW)
+                self.assertEqual(d.outcome, Outcome.APPROVE)
+
+    def test_sibling_categories_in_the_same_tree_are_not_covered(self):
+        item = sock_item(category="belts", category_path=("apparel & accessories", "clothing", "belts"))
+        d = evaluate(socks_mandate(), checkout(item), now=NOW)
+        self.assertEqual(d.outcome, Outcome.BLOCK)
+        self.assertEqual([h.rule_id for h in d.hits], ["R_CATEGORY"])
+
+    def test_a_misleading_title_cannot_satisfy_the_category_rule(self):
+        item = sock_item(title="Gift card for socks", category="gift cards", category_path=("gift cards",))
+        d = evaluate(socks_mandate(), checkout(item), now=NOW)
+        self.assertEqual(d.outcome, Outcome.BLOCK)
 
 
 class SigningTests(unittest.TestCase):
@@ -141,7 +175,7 @@ class SigningTests(unittest.TestCase):
     def test_wrong_secret_fails(self):
         m = socks_mandate()
         self.assertFalse(verify_mandate(m, sign_mandate(m, SECRET), b"other"))
-    
+
     def test_changing_blocked_merchants_invalidates_signature(self):
         m = socks_mandate(blocked_merchants=("SockDepot",))
         sig = sign_mandate(m, SECRET)

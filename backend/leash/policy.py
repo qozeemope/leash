@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -17,6 +18,24 @@ class Outcome(str, Enum):
 
 def _norm(s: str) -> str:
     return s.strip().lower()
+
+
+def _compact(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.lower())
+
+
+def _singular(word: str) -> str:
+    return word[:-1] if len(word) > 3 and word.endswith("s") and not word.endswith("ss") else word
+
+
+def _category_key(value: str) -> str:
+    words = re.findall(r"[a-z0-9]+", value.lower().replace("&", " and "))
+    return " ".join(_singular(word) for word in words)
+
+
+def _merchant_keys(merchant: str) -> set[str]:
+    host = merchant.strip().lower().removeprefix("www.")
+    return {_compact(host), _compact(host.split(".")[0])}
 
 
 @dataclass(frozen=True)
@@ -89,6 +108,7 @@ class CartItem:
     merchant: str
     merchant_rating: Optional[float] = None
     delivery_days: Optional[int] = None
+    category_path: tuple[str, ...] = ()
 
     @property
     def line_total_cents(self) -> int:
@@ -179,13 +199,14 @@ def evaluate(
             f"exceeds the {_money(mandate.budget_cents)} budget.",
         )
 
-    allowed = {_norm(c) for c in mandate.allowed_categories}
-    blocked = {_norm(m) for m in mandate.blocked_merchants}
+    allowed = {_category_key(c) for c in mandate.allowed_categories}
+    blocked = {_compact(m) for m in mandate.blocked_merchants}
     for item in action.items:
-        if _norm(item.merchant) in blocked:
-            block("R_MERCHANT", f"Merchant '{item.merchant}' is on the blocked list.")
-        if _norm(item.category) not in allowed:
+        if not {_category_key(name) for name in (item.category, *item.category_path)} & allowed:
             block("R_CATEGORY", f"'{item.title}' is category '{item.category}', which the mandate does not allow.")
+
+        if _merchant_keys(item.merchant) & blocked:
+            block("R_MERCHANT", f"Merchant '{item.merchant}' is on the blocked list.")
 
         if item.unit_price_cents > mandate.per_item_cap_cents:
             block(
