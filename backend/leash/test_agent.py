@@ -89,7 +89,7 @@ class AgentLoopTests(ApiTestCase):
         run, fake = self.run_agent(search("running socks"), propose(("sock-001", 1)))
         self.assertEqual(run.status, AgentRun.COMPLETED)
         self.assertTrue(run.final_message.startswith("Checkout ready: $18.00 for 1 item(s)."))
-        self.assertEqual(self.kinds(run), ["search", "proposal", "final"])
+        self.assertEqual(self.kinds(run), ["injection_flag", "search", "proposal", "final"])
         self.assertEqual(PayPalOrder.objects.get().amount_cents, 1800)
         self.assertEqual(self.proposals(run)[0]["approve_url"], "https://paypal.test/approve")
         self.assertEqual(len(fake.calls), 2)
