@@ -6,10 +6,13 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
 
-from . import mandate_parser, services
-from .models import AuditEvent, MandateRecord, PayPalOrder
+from . import agent, mandate_parser, services
+from .models import AgentRun, AuditEvent, MandateRecord, PayPalOrder
 from .policy import Outcome
 from .serializers import (
+    AgentRunCreateSerializer,
+    AgentRunSerializer,
+    AgentStepQuerySerializer,
     AuditEventSerializer,
     CaptureResponseSerializer,
     MandateCreateSerializer,
@@ -21,7 +24,7 @@ from .serializers import (
     ResolveResponseSerializer,
     ResolveSerializer,
 )
-from .throttles import ParseThrottle, ProposeThrottle
+from .throttles import AgentRunThrottle, ParseThrottle, ProposeThrottle
 
 
 class MandateListCreateView(generics.ListCreateAPIView):
@@ -104,3 +107,24 @@ def parse_mandate(request):
     serializer.is_valid(raise_exception=True)
     parsed = mandate_parser.parse_mandate(serializer.validated_data["text"])
     return Response(parsed.to_dict())
+
+
+@extend_schema(request=AgentRunCreateSerializer, responses={202: AgentRunSerializer})
+@api_view(["POST"])
+@throttle_classes([AgentRunThrottle])
+def start_agent_run(request, mandate_id):
+    record = get_object_or_404(MandateRecord, pk=mandate_id, owner=request.user)
+    serializer = AgentRunCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    run = agent.start_run(record, serializer.validated_data["request"])
+    return Response(AgentRunSerializer(run, context={"after": 0}).data, status=status.HTTP_202_ACCEPTED)
+
+
+@extend_schema(parameters=[AgentStepQuerySerializer], responses=AgentRunSerializer)
+@api_view(["GET"])
+def agent_run_detail(request, run_id):
+    run = get_object_or_404(AgentRun, pk=run_id, mandate__owner=request.user)
+    query = AgentStepQuerySerializer(data=request.query_params)
+    query.is_valid(raise_exception=True)
+    agent.refresh_stale(run)
+    return Response(AgentRunSerializer(run, context={"after": query.validated_data["after"]}).data)

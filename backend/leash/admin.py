@@ -2,7 +2,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import admin
 
-from .models import AuditEvent, LLMUsage, MandateRecord, PayPalOrder
+from .models import AgentRun, AgentStep, AuditEvent, LLMUsage, MandateRecord, PayPalOrder
 from .policy import Mandate, sign_mandate
 
 
@@ -65,3 +65,15 @@ class PayPalOrderAdmin(ReadOnlyAdmin):
 @admin.register(LLMUsage)
 class LLMUsageAdmin(ReadOnlyAdmin):
     list_display = ("day", "calls", "input_tokens", "output_tokens")
+
+
+@admin.register(AgentRun)
+class AgentRunAdmin(ReadOnlyAdmin):
+    list_display = ("id", "mandate", "status", "tainted", "created_at")
+    list_filter = ("status", "tainted")
+
+
+@admin.register(AgentStep)
+class AgentStepAdmin(ReadOnlyAdmin):
+    list_display = ("id", "run", "kind", "created_at")
+    list_filter = ("kind",)

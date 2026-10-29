@@ -36,14 +36,14 @@ class Product:
 
     def to_cart_item(self, quantity: int = 1) -> CartItem:
         return CartItem(
-            title=self.title,
-            category=self.category,
+            title=self.title[:200],
+            category=self.category[:64],
             unit_price_cents=self.price_cents,
             quantity=quantity,
-            merchant=self.merchant,
+            merchant=self.merchant[:128],
             merchant_rating=self.merchant_rating,
             delivery_days=self.delivery_days,
-            category_path=self.category_path,
+            category_path=tuple(name[:80] for name in self.category_path[:12]),
         )
 
 

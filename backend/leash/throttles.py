@@ -20,3 +20,7 @@ class ProposeThrottle(UserRateThrottle):
 
 class ParseThrottle(UserRateThrottle):
     scope = "ai_parse"
+
+
+class AgentRunThrottle(UserRateThrottle):
+    scope = "agent_run"

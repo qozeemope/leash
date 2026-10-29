@@ -41,6 +41,10 @@ LLM_DAILY_TOKEN_BUDGET = int(os.environ.get("LLM_DAILY_TOKEN_BUDGET", "500000"))
 PRODUCT_SEARCH_PROVIDER = os.environ.get("PRODUCT_SEARCH_PROVIDER", "seeded")
 CHANNEL3_API_KEY = os.environ.get("CHANNEL3_API_KEY", "")
 PRODUCT_SEARCH_TIMEOUT_SECONDS = float(os.environ.get("PRODUCT_SEARCH_TIMEOUT_SECONDS", "10"))
+AGENT_MAX_STEPS = int(os.environ.get("AGENT_MAX_STEPS", "6"))
+AGENT_MAX_PROPOSALS = int(os.environ.get("AGENT_MAX_PROPOSALS", "3"))
+AGENT_RUN_TIMEOUT_SECONDS = int(os.environ.get("AGENT_RUN_TIMEOUT_SECONDS", "180"))
+AGENT_PASS_RAW_DESCRIPTIONS = env_bool("AGENT_PASS_RAW_DESCRIPTIONS", False)
 ORDER_PENDING_TTL_MINUTES = int(os.environ.get("ORDER_PENDING_TTL_MINUTES", "15"))
 ORDER_APPROVAL_TTL_MINUTES = int(os.environ.get("ORDER_APPROVAL_TTL_MINUTES", "180"))
 CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
@@ -153,6 +157,7 @@ REST_FRAMEWORK = {
         "demo": "60/hour",
         "propose": "60/min",
         "ai_parse": "30/hour",
+        "agent_run": "20/hour",
     },
     "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "1")),
 }

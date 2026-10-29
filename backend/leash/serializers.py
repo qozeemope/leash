@@ -3,7 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .accounts import is_demo
-from .models import AuditEvent, MandateRecord, PayPalOrder
+from .models import AgentRun, AgentStep, AuditEvent, MandateRecord, PayPalOrder
 from .policy import CartItem, Outcome, ProposedAction
 
 MAX_CENTS = 10_000_000
@@ -153,3 +153,33 @@ class MandateParseResponseSerializer(serializers.Serializer):
     summary = serializers.ListField(child=serializers.CharField())
     assumptions = serializers.ListField(child=serializers.CharField())
     questions = serializers.ListField(child=serializers.CharField())
+
+
+class AgentRunCreateSerializer(serializers.Serializer):
+    request = serializers.CharField(max_length=500)
+
+
+class AgentStepQuerySerializer(serializers.Serializer):
+    after = serializers.IntegerField(min_value=0, default=0)
+
+
+class AgentStepSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgentStep
+        fields = ["id", "kind", "data", "created_at"]
+        read_only_fields = fields
+
+
+class AgentRunSerializer(serializers.ModelSerializer):
+    mandate_id = serializers.UUIDField(read_only=True)
+    steps = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AgentRun
+        fields = ["id", "mandate_id", "request_text", "status", "final_message", "tainted", "created_at", "steps"]
+        read_only_fields = fields
+
+    @extend_schema_field(AgentStepSerializer(many=True))
+    def get_steps(self, obj):
+        after = self.context.get("after", 0)
+        return AgentStepSerializer(obj.steps.filter(id__gt=after), many=True).data

@@ -132,3 +132,38 @@ class LLMUsage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.day}: {self.calls} calls"
+
+
+class AgentRun(models.Model):
+    RUNNING, COMPLETED, FAILED = "running", "completed", "failed"
+    STATUSES = [(RUNNING, "Running"), (COMPLETED, "Completed"), (FAILED, "Failed")]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    mandate = models.ForeignKey(MandateRecord, on_delete=models.CASCADE, related_name="agent_runs")
+    request_text = models.TextField()
+    status = models.CharField(max_length=16, choices=STATUSES, default=RUNNING)
+    final_message = models.TextField(blank=True)
+    tainted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Run {str(self.id)[:8]} {self.status}"
+
+
+class AgentStep(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    run = models.ForeignKey(AgentRun, on_delete=models.CASCADE, related_name="steps")
+    kind = models.CharField(max_length=24)
+    data = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        indexes = [models.Index(fields=["run", "id"])]
+
+    def __str__(self) -> str:
+        return f"{self.kind} #{self.id}"

@@ -89,6 +89,28 @@ def action_from_payload(payload: dict) -> ProposedAction:
     return serializer.to_action()
 
 
+def action_to_payload(action: ProposedAction) -> dict:
+    return {
+        "kind": action.kind,
+        "items": [
+            {
+                "title": item.title,
+                "category": item.category,
+                "unit_price_cents": item.unit_price_cents,
+                "quantity": item.quantity,
+                "merchant": item.merchant,
+                "merchant_rating": item.merchant_rating,
+                "delivery_days": item.delivery_days,
+                "category_path": list(item.category_path),
+            }
+            for item in action.items
+        ],
+        "currency": action.currency,
+        "origin": action.origin,
+        "agent_reason": action.agent_reason,
+    }
+
+
 def _signature_hit() -> dict:
     return {
         "rule_id": "R_SIGNATURE",
