@@ -158,6 +158,28 @@ class PolicyTests(unittest.TestCase):
         d = evaluate(socks_mandate(), checkout(item), now=NOW)
         self.assertEqual(d.outcome, Outcome.BLOCK)
 
+    def test_a_mislabeled_expensive_item_is_still_stopped_by_the_money_rules(self):
+        item = sock_item(title="$200 Gift Card", category="socks", unit_price_cents=20000)
+        d = evaluate(socks_mandate(), checkout(item), now=NOW)
+        self.assertEqual(d.outcome, Outcome.BLOCK)
+        rules = {h.rule_id for h in d.hits}
+        self.assertTrue({"R_ITEM_CAP", "R_BUDGET"} <= rules)
+        self.assertNotIn("R_CATEGORY", rules)
+
+    def test_unknown_delivery_time_escalates_when_the_mandate_sets_a_limit(self):
+        d = evaluate(socks_mandate(), checkout(sock_item(delivery_days=None)), now=NOW)
+        self.assertEqual(d.outcome, Outcome.ESCALATE)
+        self.assertEqual([h.rule_id for h in d.hits], ["R_DELIVERY_UNKNOWN"])
+
+    def test_unknown_delivery_time_is_fine_when_the_mandate_sets_no_limit(self):
+        mandate = socks_mandate(max_delivery_days=None)
+        d = evaluate(mandate, checkout(sock_item(delivery_days=None)), now=NOW)
+        self.assertEqual(d.outcome, Outcome.APPROVE)
+
+    def test_a_known_slow_delivery_still_blocks_outright(self):
+        d = evaluate(socks_mandate(), checkout(sock_item(delivery_days=9)), now=NOW)
+        self.assertEqual(d.outcome, Outcome.BLOCK)
+
 
 class SigningTests(unittest.TestCase):
     def test_roundtrip_through_dict_keeps_signature_valid(self):

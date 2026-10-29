@@ -116,7 +116,7 @@ def start_agent_run(request, mandate_id):
     record = get_object_or_404(MandateRecord, pk=mandate_id, owner=request.user)
     serializer = AgentRunCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    run = agent.start_run(record, serializer.validated_data["request"])
+    run = agent.start_run(record, serializer.validated_data["request"], serializer.validated_data["mode"])
     return Response(AgentRunSerializer(run, context={"after": 0}).data, status=status.HTTP_202_ACCEPTED)
 
 

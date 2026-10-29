@@ -137,9 +137,20 @@ class LLMUsage(models.Model):
 class AgentRun(models.Model):
     RUNNING, COMPLETED, FAILED = "running", "completed", "failed"
     STATUSES = [(RUNNING, "Running"), (COMPLETED, "Completed"), (FAILED, "Failed")]
+    LIVE = "live"
+    ATTACK_GIFT_CARD = "attack_gift_card"
+    ATTACK_OVERSPEND = "attack_overspend"
+    ATTACK_BANNED_MERCHANT = "attack_banned_merchant"
+    MODES = [
+        (LIVE, "Live"),
+        (ATTACK_GIFT_CARD, "Simulated attack: gift card"),
+        (ATTACK_OVERSPEND, "Simulated attack: oversized order"),
+        (ATTACK_BANNED_MERCHANT, "Simulated attack: banned merchant"),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     mandate = models.ForeignKey(MandateRecord, on_delete=models.CASCADE, related_name="agent_runs")
+    mode = models.CharField(max_length=24, choices=MODES, default=LIVE)
     request_text = models.TextField()
     status = models.CharField(max_length=16, choices=STATUSES, default=RUNNING)
     final_message = models.TextField(blank=True)

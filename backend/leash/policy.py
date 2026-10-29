@@ -225,8 +225,10 @@ def evaluate(
                     f"below the required {mandate.min_merchant_rating}.",
                 )
 
-        if mandate.max_delivery_days is not None and item.delivery_days is not None:
-            if item.delivery_days > mandate.max_delivery_days:
+        if mandate.max_delivery_days is not None:
+            if item.delivery_days is None:
+                escalate("R_DELIVERY_UNKNOWN", f"'{item.title}' has no delivery estimate; needs human review.")
+            elif item.delivery_days > mandate.max_delivery_days:
                 block(
                     "R_DELIVERY",
                     f"'{item.title}' ships in {item.delivery_days} days; limit is {mandate.max_delivery_days}.",

@@ -157,6 +157,7 @@ class MandateParseResponseSerializer(serializers.Serializer):
 
 class AgentRunCreateSerializer(serializers.Serializer):
     request = serializers.CharField(max_length=500)
+    mode = serializers.ChoiceField(choices=[value for value, _ in AgentRun.MODES], default=AgentRun.LIVE)
 
 
 class AgentStepQuerySerializer(serializers.Serializer):
@@ -176,7 +177,17 @@ class AgentRunSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AgentRun
-        fields = ["id", "mandate_id", "request_text", "status", "final_message", "tainted", "created_at", "steps"]
+        fields = [
+            "id",
+            "mandate_id",
+            "mode",
+            "request_text",
+            "status",
+            "final_message",
+            "tainted",
+            "created_at",
+            "steps",
+        ]
         read_only_fields = fields
 
     @extend_schema_field(AgentStepSerializer(many=True))

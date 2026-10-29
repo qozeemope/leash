@@ -1,40 +1,48 @@
 import uuid
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from leash import agent, mandate_parser, services
 from leash.llm import LLMError
 from leash.models import AgentRun
 from leash.policy import Mandate
 
+SIMULATIONS = {
+    "gift_card": AgentRun.ATTACK_GIFT_CARD,
+    "overspend": AgentRun.ATTACK_OVERSPEND,
+    "banned_merchant": AgentRun.ATTACK_BANNED_MERCHANT,
+}
+
 
 class Command(BaseCommand):
-    help = "Runs the whole pipeline with the real AI: parse a mandate, then let the agent shop."
+    help = "Runs the whole pipeline: a mandate, then the agent shopping (live or as a simulated attack)."
 
     def add_arguments(self, parser):
-        parser.add_argument("--mandate", required=True, help="Spending rules in plain English.")
-        parser.add_argument("--request", required=True, help="What to shop for.")
-        parser.add_argument("--red-team", action="store_true", help="Let the AI see suspicious product text.")
+        parser.add_argument("--mandate", help="Spending rules in plain English.")
+        parser.add_argument("--request", default="Find me some good running socks")
+        parser.add_argument("--red-team", action="store_true", help="Let the real AI see suspicious product text.")
+        parser.add_argument("--simulate", choices=sorted(SIMULATIONS), help="Replay a scripted compromised agent.")
 
     def handle(self, *args, **options):
-        try:
-            parsed = mandate_parser.parse_mandate(options["mandate"])
-        except LLMError as exc:
-            raise CommandError(f"{type(exc).__name__}: {exc}") from exc
-        if parsed.status != "ready":
-            raise CommandError("The mandate needs more detail: " + " ".join(parsed.questions))
-
         user, _ = get_user_model().objects.get_or_create(username="agent_demo")
-        mandate = Mandate.from_dict({**parsed.terms, "mandate_id": str(uuid.uuid4())})
-        record = services.create_signed_mandate(user, options["mandate"], mandate)
+        if options["mandate"]:
+            record, summary = self.parsed_mandate(user, options["mandate"])
+        elif options["simulate"]:
+            record, summary = self.default_mandate(user)
+        else:
+            raise CommandError("Provide --mandate, or use --simulate for a built-in one.")
+
         self.stdout.write("Mandate:")
-        for line in parsed.summary:
+        for line in summary:
             self.stdout.write(f"  - {line}")
 
-        run = AgentRun.objects.create(mandate=record, request_text=options["request"])
-        mode = "red-team (AI sees suspicious text)" if options["red_team"] else "normal"
-        self.stdout.write(f"\nRunning agent in {mode} mode...\n")
+        mode = SIMULATIONS[options["simulate"]] if options["simulate"] else AgentRun.LIVE
+        run = AgentRun.objects.create(mandate=record, request_text=options["request"], mode=mode)
+        label = "simulated attack" if options["simulate"] else ("red-team" if options["red_team"] else "normal")
+        self.stdout.write(f"\nRunning agent ({label} mode)...\n")
         agent.execute_run(run.id, pass_raw=options["red_team"])
 
         run.refresh_from_db()
@@ -42,6 +50,32 @@ class Command(BaseCommand):
             self.stdout.write(self.describe(step))
         self.stdout.write(f"\nStatus: {run.status}   Tainted: {run.tainted}")
         self.stdout.write(f"Final message: {run.final_message}")
+
+    def parsed_mandate(self, user, text):
+        try:
+            parsed = mandate_parser.parse_mandate(text)
+        except LLMError as exc:
+            raise CommandError(f"{type(exc).__name__}: {exc}") from exc
+        if parsed.status != "ready":
+            raise CommandError("The mandate needs more detail: " + " ".join(parsed.questions))
+        mandate = Mandate.from_dict({**parsed.terms, "mandate_id": str(uuid.uuid4())})
+        return services.create_signed_mandate(user, text, mandate), parsed.summary
+
+    def default_mandate(self, user):
+        mandate = Mandate(
+            mandate_id=str(uuid.uuid4()),
+            currency="USD",
+            budget_cents=6000,
+            expires_at=timezone.now() + timedelta(days=1),
+            allowed_categories=("socks",),
+            per_item_cap_cents=3000,
+            max_items=3,
+            min_merchant_rating=4.0,
+            max_delivery_days=3,
+            blocked_merchants=("SketchyShop",),
+        )
+        summary = mandate_parser.describe(mandate.to_dict())
+        return services.create_signed_mandate(user, "built-in demo mandate", mandate), summary
 
     def describe(self, step):
         data = step.data

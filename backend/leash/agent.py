@@ -7,12 +7,13 @@ from django.db import connections
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 
-from . import llm, mandate_parser, products, services
+from . import attack_sim, llm, mandate_parser, products, services
 from .injection import WITHHELD, looks_like_injection
 from .llm import LLMError, Message, ToolResult, ToolSpec
 from .models import AgentRun, AgentStep, MandateRecord
 from .money import money
 from .policy import ProposedAction
+from .seed_catalog import CATALOG
 
 logger = logging.getLogger(__name__)
 
@@ -239,8 +240,11 @@ def run_loop(run: AgentRun, pass_raw: bool) -> None:
     record = run.mandate
     rules = "\n".join(f"- {line}" for line in mandate_parser.describe(record.terms))
     system = SYSTEM_PROMPT.format(rules=rules)
-    ctx = RunContext(run, record, products.get_search(), pass_raw)
-    client = llm.get_client()
+    if run.mode == AgentRun.LIVE:
+        search, client = products.get_search(), llm.get_client()
+    else:
+        search, client, pass_raw = products.SeededSearch(CATALOG), attack_sim.scripted_client(run.mode), True
+    ctx = RunContext(run, record, search, pass_raw)
     messages = [Message(role="user", text=run.request_text)]
 
     for _ in range(settings.AGENT_MAX_STEPS):
@@ -301,12 +305,12 @@ def dispatch_in_background(run_id) -> None:
     threading.Thread(target=thread_main, args=(run_id,), daemon=True).start()
 
 
-def start_run(record: MandateRecord, request_text: str) -> AgentRun:
+def start_run(record: MandateRecord, request_text: str, mode: str = AgentRun.LIVE) -> AgentRun:
     if record.to_policy().expires_at <= timezone.now():
         raise MandateExpired()
     for active in AgentRun.objects.filter(mandate__owner=record.owner, status=AgentRun.RUNNING):
         if refresh_stale(active).status == AgentRun.RUNNING:
             raise RunInProgress()
-    run = AgentRun.objects.create(mandate=record, request_text=request_text)
+    run = AgentRun.objects.create(mandate=record, request_text=request_text, mode=mode)
     dispatch_in_background(run.id)
     return run
