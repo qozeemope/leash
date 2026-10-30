@@ -4,6 +4,33 @@ info:
   version: 0.1.0
   description: Spending mandates and policy decisions for AI shopping agents.
 paths:
+  /api/agent-runs/{run_id}/:
+    get:
+      operationId: agent_runs_retrieve
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - agent-runs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+          description: ''
   /api/audit/{event_id}/resolve/:
     post:
       operationId: audit_resolve_create
@@ -187,6 +214,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/Mandate'
           description: ''
+  /api/mandates/{mandate_id}/agent-runs/:
+    post:
+      operationId: mandates_agent_runs_create
+      parameters:
+      - in: path
+        name: mandate_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - mandates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRunCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRun'
+          description: ''
   /api/mandates/{mandate_id}/audit/:
     get:
       operationId: mandates_audit_list
@@ -241,6 +295,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProposalResponse'
           description: ''
+  /api/mandates/parse/:
+    post:
+      operationId: mandates_parse_create
+      tags:
+      - mandates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MandateParseRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MandateParseResponse'
+          description: ''
   /api/orders/{paypal_order_id}/capture/:
     post:
       operationId: orders_capture_create
@@ -263,6 +337,119 @@ paths:
           description: ''
 components:
   schemas:
+    AgentRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        mandate_id:
+          type: string
+          format: uuid
+          readOnly: true
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/AgentRunModeEnum'
+          readOnly: true
+        request_text:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AgentRunStatusEnum'
+          readOnly: true
+        final_message:
+          type: string
+          readOnly: true
+        tainted:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentStep'
+          readOnly: true
+      required:
+      - created_at
+      - final_message
+      - id
+      - mandate_id
+      - mode
+      - request_text
+      - status
+      - steps
+      - tainted
+    AgentRunCreate:
+      type: object
+      properties:
+        request:
+          type: string
+          maxLength: 500
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/AgentRunCreateModeEnum'
+          default: live
+      required:
+      - request
+    AgentRunCreateModeEnum:
+      enum:
+      - live
+      - attack_gift_card
+      - attack_overspend
+      - attack_banned_merchant
+      type: string
+      description: |-
+        * `live` - live
+        * `attack_gift_card` - attack_gift_card
+        * `attack_overspend` - attack_overspend
+        * `attack_banned_merchant` - attack_banned_merchant
+    AgentRunModeEnum:
+      enum:
+      - live
+      - attack_gift_card
+      - attack_overspend
+      - attack_banned_merchant
+      type: string
+      description: |-
+        * `live` - Live
+        * `attack_gift_card` - Simulated attack: gift card
+        * `attack_overspend` - Simulated attack: oversized order
+        * `attack_banned_merchant` - Simulated attack: banned merchant
+    AgentRunStatusEnum:
+      enum:
+      - running
+      - completed
+      - failed
+      type: string
+      description: |-
+        * `running` - Running
+        * `completed` - Completed
+        * `failed` - Failed
+    AgentStep:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          type: string
+          readOnly: true
+        data:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - data
+      - id
+      - kind
     AuditEvent:
       type: object
       properties:
@@ -301,11 +488,15 @@ components:
       enum:
       - proposal
       - order_created
+      - order_failed
+      - order_expired
       - order_captured
       type: string
       description: |-
         * `proposal` - Proposal
         * `order_created` - Order created
+        * `order_failed` - Order failed
+        * `order_expired` - Order expired
         * `order_captured` - Order captured
     AuditEventOutcomeEnum:
       enum:
@@ -338,14 +529,20 @@ components:
       - status
     CaptureResponseStatusEnum:
       enum:
+      - pending
       - created
+      - capturing
       - completed
       - failed
+      - expired
       type: string
       description: |-
+        * `pending` - pending
         * `created` - created
+        * `capturing` - capturing
         * `completed` - completed
         * `failed` - failed
+        * `expired` - expired
     CartItem:
       type: object
       properties:
@@ -379,6 +576,12 @@ components:
           maximum: 365
           minimum: 0
           nullable: true
+        category_path:
+          type: array
+          items:
+            type: string
+            maxLength: 80
+          maxItems: 12
       required:
       - category
       - title
@@ -462,6 +665,47 @@ components:
           $ref: '#/components/schemas/MandateTerms'
       required:
       - terms
+    MandateParseRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 1000
+      required:
+      - text
+    MandateParseResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/MandateParseResponseStatusEnum'
+        terms:
+          nullable: true
+        summary:
+          type: array
+          items:
+            type: string
+        assumptions:
+          type: array
+          items:
+            type: string
+        questions:
+          type: array
+          items:
+            type: string
+      required:
+      - assumptions
+      - questions
+      - status
+      - summary
+      - terms
+    MandateParseResponseStatusEnum:
+      enum:
+      - ready
+      - needs_clarification
+      type: string
+      description: |-
+        * `ready` - ready
+        * `needs_clarification` - needs_clarification
     MandateTerms:
       type: object
       properties:
