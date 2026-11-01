@@ -50,16 +50,26 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      # Check these names against backend/.env.example and change any that differ.
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/leash
       DJANGO_SECRET_KEY: ci-only-secret-key-not-used-anywhere-else
       MANDATE_SIGNING_KEY: ci-only-signing-key-not-used-anywhere-else
-      DJANGO_DEBUG: "false"
+      DEBUG: "true"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      FRONTEND_URL: http://localhost:5173
+      DEMO_MODE: "true"
+      NUM_PROXIES: "1"
+      PAYPAL_CLIENT_ID: ci-dummy-client-id
+      PAYPAL_CLIENT_SECRET: ci-dummy-client-secret
+      PAYPAL_BASE_URL: https://api-m.sandbox.paypal.com
+      LLM_PROVIDER: gemini
+      LLM_API_KEY: ci-dummy-key
+      LLM_MODEL: ci-dummy-model
+      PRODUCT_SEARCH_PROVIDER: seeded
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
