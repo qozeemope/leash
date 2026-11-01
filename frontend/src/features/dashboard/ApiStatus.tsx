@@ -1,39 +1,22 @@
-import { useEffect, useState } from "react";
-
-type Status = "checking" | "ok" | "down";
-
-const LABELS: Record<Status, string> = {
-  checking: "Checking the server...",
-  ok: "Server connected",
-  down: "Server unreachable",
-};
-
-const DOT_CLASSES: Record<Status, string> = {
-  checking: "bg-slate-400",
-  ok: "bg-approve-600",
-  down: "bg-block-600",
-};
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "../../shared/api/client";
+import type { HealthResponse } from "../../shared/api/types";
 
 export function ApiStatus() {
-  const [status, setStatus] = useState<Status>("checking");
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["health"],
+    queryFn: () => apiFetch<HealthResponse>("/api/health/"),
+    refetchInterval: 30_000,
+    retry: false,
+  });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/health/", { signal: controller.signal })
-      .then((response) => response.json())
-      .then((body: { status?: string }) => setStatus(body.status === "ok" ? "ok" : "down"))
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setStatus("down");
-        }
-      });
-    return () => controller.abort();
-  }, []);
+  const up = data?.status === "ok";
+  const text = isPending ? "Checking the server..." : up ? "The server is up." : "The server is not responding.";
+  const lampClass = isPending ? "lamp" : up && !isError ? "lamp lamp-on" : "lamp lamp-off";
 
   return (
-    <p role="status" className="flex items-center gap-2 text-sm text-slate-700">
-      <span className={`h-2.5 w-2.5 rounded-full ${DOT_CLASSES[status]}`} aria-hidden="true" />
-      {LABELS[status]}
+    <p role="status" aria-live="polite">
+      <span className={lampClass} aria-hidden="true" /> {text}
     </p>
   );
 }

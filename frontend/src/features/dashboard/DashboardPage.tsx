@@ -1,28 +1,29 @@
-import { OutcomeBadge } from "../../shared/ui/OutcomeBadge";
+import { Box } from "../../shared/ui/Box";
+import { Notice } from "../../shared/ui/Notice";
+import { PageMeta } from "../../shared/ui/PageMeta";
+import { useAuth } from "../auth/AuthContext";
+import { MandateList } from "../mandates/MandateList";
 import { ApiStatus } from "./ApiStatus";
 
 export function DashboardPage() {
+  const { user } = useAuth();
+
   return (
-    <section aria-labelledby="dashboard-title" className="space-y-6">
-      <div>
-        <h1 id="dashboard-title" className="text-2xl font-semibold tracking-tight">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-slate-600">Your spending rules and agent activity will appear here.</p>
-      </div>
+    <>
+      <PageMeta title="Dashboard" description="Your spending mandates and agent activity." path="/dashboard" indexable={false} />
+      <h1>Your dashboard</h1>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      {user?.is_demo ? (
+        <Notice kind="info">Demo account active. Data here is visible only to you and is removed during routine cleanup.</Notice>
+      ) : null}
+
+      <Box title="Spending rules" tone="wall">
+        <MandateList />
+      </Box>
+
+      <Box title="System status">
         <ApiStatus />
-      </div>
-
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-700">Decision badges</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <OutcomeBadge outcome="approve" />
-          <OutcomeBadge outcome="escalate" />
-          <OutcomeBadge outcome="block" />
-        </div>
-      </div>
-    </section>
+      </Box>
+    </>
   );
 }

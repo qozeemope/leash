@@ -1,13 +1,20 @@
-import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://127.0.0.1:8000",
+      "/api": { target: "http://127.0.0.1:8000", changeOrigin: false },
     },
+  },
+  build: { sourcemap: false, target: "es2022" },
+  test: {
+    environment: "jsdom",
+    include: ["src/**/*.test.tsx"],
+    setupFiles: ["src/test/setup.ts"],
+    css: false,
   },
 });

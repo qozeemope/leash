@@ -1,13 +1,16 @@
-import { Link } from "react-router-dom";
+import { ButtonLink } from "../shared/ui/Button";
+import { PageMeta } from "../shared/ui/PageMeta";
 
 export function NotFoundPage() {
   return (
-    <section className="space-y-3">
-      <h1 className="text-2xl font-semibold tracking-tight">Page not found</h1>
-      <p className="text-slate-600">That address doesn't lead anywhere.</p>
-      <Link to="/" className="inline-block font-medium text-brand-600 hover:text-brand-700">
-        Back to the dashboard
-      </Link>
-    </section>
+    <div className="not-found">
+      <PageMeta title="Page not found" description="This page does not exist on Leash." indexable={false} />
+      <span className="stamp stamp-block">Error 404</span>
+      <h1>Page not found</h1>
+      <p>The address may be mistyped, or the page may have moved. Return to the home page to continue.</p>
+      <ButtonLink to="/" variant="primary">
+        Go to the home page
+      </ButtonLink>
+    </div>
   );
 }

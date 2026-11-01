@@ -2,13 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="data:," />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Spending limits for AI shopping agents, enforced before any money moves." />
-    <title>Leash</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Leash: a spending limit for AI shopping agents</title>
+    <meta name="description" content="Tell an AI shopping agent how much it may spend, on what, and where. Leash checks every purchase against your signed rules and shows you why it said yes, asked you, or said no." />
+    <meta name="theme-color" content="#003366" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://leash.example.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Leash" />
+    <meta property="og:title" content="Leash: a spending limit for AI shopping agents" />
+    <meta property="og:description" content="Your agent shops. Your rules decide. Every purchase is approved, escalated to you, or blocked, with the reason on record." />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Leash",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "description": "A spending limit for AI shopping agents. Write a rule in plain English, and every purchase an agent proposes is checked against it before PayPal is called.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>Leash</h1>
+      <p>Leash is a spending limit for AI shopping agents. It needs JavaScript to run. Every purchase an agent proposes is checked against your signed rules, then approved, escalated to you, or blocked, with the reason recorded.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

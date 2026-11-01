@@ -1,5 +1,4 @@
 from django.urls import path
-
 from . import auth_views, views
 from .health import health
 

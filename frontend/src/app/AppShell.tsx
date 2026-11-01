@@ -1,37 +1,90 @@
-import { NavLink, Outlet } from "react-router-dom";
-
-import { SandboxBanner } from "../shared/ui/SandboxBanner";
-
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-    isActive ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-  }`;
+import { useEffect, useRef } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "../shared/ui/Button";
+import { CrashNotice } from "../shared/ui/CrashNotice";
+import { ErrorBoundary } from "../shared/ui/ErrorBoundary";
+import { Logo } from "../shared/ui/Logo";
+import { SandboxStrip } from "../shared/ui/SandboxStrip";
+import { useAuth } from "../features/auth/AuthContext";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { Footer } from "./Footer";
 
 export function AppShell() {
+  const { pathname } = useLocation();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const mainRef = useRef<HTMLElement>(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    window.scrollTo(0, 0);
+    mainRef.current?.focus();
+  }, [pathname]);
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow"
-      >
-        Skip to content
+    <>
+      <a className="skip-link" href="#main">
+        Skip to main content
       </a>
-      <SandboxBanner />
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <NavLink to="/" className="text-lg font-semibold tracking-tight text-slate-900">
-            Leash
-          </NavLink>
-          <nav aria-label="Main" className="flex items-center gap-1">
-            <NavLink to="/" end className={navLinkClass}>
-              Dashboard
-            </NavLink>
-          </nav>
+      <SandboxStrip />
+      <header className="masthead">
+        <div className="masthead-inner">
+          <Logo />
+          <div className="masthead-side">
+            {user ? (
+              <p className="account">
+                Signed in as {user.username}
+                {user.is_demo ? " (demo)" : ""}{" "}
+                <Button
+                  size="small"
+                  onClick={() => {
+                    void signOut().then(() => navigate("/", { replace: true }));
+                  }}
+                >
+                  Sign out
+                </Button>
+              </p>
+            ) : null}
+            <nav aria-label="Main">
+              <ul className="tabs">
+                <li>
+                  <NavLink to="/" end>
+                    Home
+                  </NavLink>
+                </li>
+                {user ? (
+                  <>
+                    <li>
+                      <NavLink to="/dashboard">Dashboard</NavLink>
+                    </li>
+                    <li>
+                      <NavLink to="/mandates/new">New rule</NavLink>
+                    </li>
+                  </>
+                ) : (
+                  <li>
+                    <NavLink to="/login">Sign in</NavLink>
+                  </li>
+                )}
+                <li>
+                  <NavLink to="/styleguide">Style guide</NavLink>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </header>
-      <main id="main" className="mx-auto max-w-5xl px-4 py-8">
-        <Outlet />
+      <main id="main" ref={mainRef} tabIndex={-1} className="page">
+        <Breadcrumbs />
+        <ErrorBoundary resetKey={pathname} fallback={(error) => <CrashNotice error={error} />}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }
