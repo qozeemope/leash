@@ -40,4 +40,6 @@ services:
       - key: LLM_API_KEY
         sync: false
       - key: PRODUCT_SEARCH_PROVIDER
-        value: seeded
+        value: channel3
+      - key: CHANNEL3_API_KEY
+        sync: false
