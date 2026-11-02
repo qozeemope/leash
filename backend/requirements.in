@@ -9,4 +9,3 @@ google-genai==2.33.0
 httpx==0.28.1
 requests==2.33.0
 whitenoise==6.11.0
-django-cors-headers==4.9.0
