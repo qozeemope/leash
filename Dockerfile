@@ -17,4 +17,4 @@ COPY --from=frontend /app/frontend/dist frontend/dist
 WORKDIR /app/backend
 RUN DJANGO_SECRET_KEY=build-only MANDATE_SIGNING_KEY=build-only python manage.py collectstatic --noinput
 EXPOSE 10000
-CMD ["sh", "-c", "python manage.py migrate --noinput && (python manage.py maintain_orders || echo 'maintain_orders skipped') && (python manage.py purge_demo_users || echo 'purge_demo_users skipped') && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-10000} --worker-class gthread --workers 1 --threads 8 --timeout 120"]
+CMD ["sh", "-c", "python -c \"import os; from urllib.parse import urlparse; u = urlparse(os.environ.get('DATABASE_URL', '')); print('database host:', u.hostname, '| scheme:', u.scheme, '| has password:', bool(u.password))\" && python manage.py migrate --noinput && (python manage.py maintain_orders || echo 'maintain_orders skipped') && (python manage.py purge_demo_users || echo 'purge_demo_users skipped') && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-10000} --worker-class gthread --workers 1 --threads 8 --timeout 120"]
