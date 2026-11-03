@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: leash
+    name: leash-api
     runtime: docker
     region: frankfurt
     plan: free
