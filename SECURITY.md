@@ -18,22 +18,26 @@ Leash is a hackathon project that uses PayPal sandbox accounts only. No real mon
 - **Demo accounts are isolated.** Each visitor gets a throwaway account with no usable password, and stale ones are purged by a management command.
 - **The PayPal link is checked.** The interface only follows a payment link if it is an https PayPal address.
 
+## Reporting a vulnerability
+
+Use GitHub private vulnerability reporting on this repository (Security tab, then Report a vulnerability). Please do not open a public issue for security problems.
+
 ## Checks run (1 November 2026)
 
-| Check | Result |
-|---|---|
-| Frontend dependency audit (`npm audit --omit=dev`) | 0 vulnerabilities |
-| Backend dependency audit (`pip-audit`) | Initially 175 findings across 12 packages. Cause: the requirements file listed unrelated packages. After trimming to direct dependencies and updating Django, Django REST Framework and others: no known vulnerabilities |
-| Real `.env` file in git | Never committed. Only `.env.example` is tracked |
-| Keys in git history | Searched for the PayPal and Gemini key prefixes: not found |
-| Django deployment check (`check --deploy`, debug off) | 2 optional warnings, listed below |
-| Frontend code scan | No `innerHTML`, `eval`, hard-coded secrets or insecure URLs. Only temporary checkout notes are stored in the browser session |
-| Automated tests | Backend and frontend suites run in GitHub Actions on every push |
+| Check                                                 | Result                                                                                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Frontend dependency audit (`npm audit --omit=dev`)    | 0 vulnerabilities                                                                                                            |
+| Backend dependency audit (`pip-audit`)                | No known vulnerabilities                                                                                                     |
+| Real `.env` file in git                               | Never committed. Only `.env.example` is tracked                                                                              |
+| Keys in git history                                   | Searched for the PayPal and Gemini key prefixes: not found                                                                   |
+| Django deployment check (`check --deploy`, debug off) | 2 optional warnings, listed below                                                                                            |
+| Frontend code scan                                    | No `innerHTML`, `eval`, hard-coded secrets or insecure URLs. Only temporary checkout notes are stored in the browser session |
+| Automated tests                                       | Backend and frontend suites run in GitHub Actions on every push                                                              |
 
 ## Known gaps
 
 - **HSTS subdomains and preload** are not enabled. They are hard to undo and need a custom domain.
-- **Content Security Policy** is not set yet. It will be added when Django serves the built frontend.
+- **Content Security Policy** is not enforced yet.
 - **No penetration test** or independent review has been done.
 - **No key rotation process.** Secrets live in environment variables and would be replaced by hand.
 - **PCI and KYC** are out of scope. PayPal handles card data on its own pages, and this project uses sandbox money only.

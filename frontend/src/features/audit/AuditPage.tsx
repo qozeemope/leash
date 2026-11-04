@@ -6,6 +6,7 @@ import type { AuditEvent, Paginated, ResolveDecision, ResolveResponse } from "..
 import { Button, ButtonAnchor, ButtonLink } from "../../shared/ui/Button";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { ErrorNotice } from "../../shared/ui/ErrorNotice";
+import { Loading } from "../../shared/ui/Loading";
 import { Notice } from "../../shared/ui/Notice";
 import { ErrorBoundary } from "../../shared/ui/ErrorBoundary";
 import { PageMeta } from "../../shared/ui/PageMeta";
@@ -66,7 +67,7 @@ export function AuditPage() {
             <p>
               <ButtonAnchor
                 href={resolve.data.approve_url}
-                variant="gold"
+                variant="primary"
                 onClick={() => rememberCheckout(resolve.data?.approve_url ?? "", { mandateId, totalCents: null })}
               >
                 Approve payment on PayPal
@@ -77,9 +78,7 @@ export function AuditPage() {
       ) : null}
 
       {audit.isPending ? (
-        <p role="status" aria-live="polite">
-          Loading the audit log...
-        </p>
+        <Loading label="Loading the audit log" />
       ) : null}
 
       {audit.error ? (
@@ -95,7 +94,7 @@ export function AuditPage() {
           title="No decisions recorded"
           description="Each purchase your agent proposes is checked and logged here with the rules that applied."
           action={
-            <ButtonLink to={`/mandates/${mandateId}`} variant="gold">
+            <ButtonLink to={`/mandates/${mandateId}`} variant="primary">
               Run the shopping agent
             </ButtonLink>
           }
@@ -128,13 +127,7 @@ export function AuditPage() {
               </div>
             )}
           >
-            <Suspense
-              fallback={
-                <p role="status" aria-live="polite">
-                  Loading the table...
-                </p>
-              }
-            >
+            <Suspense fallback={<Loading label="Loading the table" />}>
               <AuditGrid events={data.results} context={context} />
             </Suspense>
           </ErrorBoundary>

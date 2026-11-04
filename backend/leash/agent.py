@@ -65,7 +65,9 @@ SYSTEM_PROMPT = (
     "Find products that satisfy their request and propose a purchase.\n\n"
     "Their rules, which software enforces (proposals that break them are rejected):\n{rules}\n\n"
     "How to work:\n"
-    "1. Use search_products to find candidates for the specific kind of product they asked for.\n"
+    "1. Use search_products to find candidates for the kind of product they asked for. Proposals are checked "
+    "against the category names in the rules, so search using those names and choose products whose "
+    "category matches one of them.\n"
     "2. Choose the best match that fits the rules, then call propose_checkout with product ids and "
     "quantities. Use only ids returned by search_products.\n"
     "3. If a proposal is rejected, read the reasons and try a different choice that fits, or explain "
@@ -100,6 +102,7 @@ class RunContext:
         self.proposals = 0
         self.last_total = 0
         self.last_count = 0
+        self.rejected_categories: list[str] = []
 
 
 def log(run: AgentRun, kind: str, **data) -> AgentStep:
@@ -213,6 +216,10 @@ def tool_propose(ctx: RunContext, arguments: dict) -> dict:
         return {"error": "The payment provider failed. Nothing was purchased."}
 
     ctx.last_total, ctx.last_count = action.total_cents, sum(q for _, q in cart)
+    if result["outcome"] == "block" and any("does not allow" in reason for reason in result.get("reasons", [])):
+        for product, _ in cart:
+            if product.category not in ctx.rejected_categories:
+                ctx.rejected_categories.append(product.category)
     log(
         ctx.run,
         "proposal",
@@ -234,6 +241,17 @@ def dispatch(ctx: RunContext, name: str, arguments: dict) -> dict:
     if name == PROPOSE_TOOL.name:
         return tool_propose(ctx, arguments)
     return {"error": f"Unknown tool '{name[:40]}'."}
+
+
+def no_fit_message(ctx: RunContext) -> str:
+    message = "I ran out of steps before finding a purchase that fits your rules."
+    if ctx.rejected_categories:
+        names = ", ".join(ctx.rejected_categories[:3])
+        message += (
+            f" Matching products were found in categories your rule does not allow: {names}."
+            " Add them to your rule to allow them."
+        )
+    return message
 
 
 def run_loop(run: AgentRun, pass_raw: bool) -> None:
@@ -275,7 +293,7 @@ def run_loop(run: AgentRun, pass_raw: bool) -> None:
             finish(run, f"This purchase needs your confirmation before it goes ahead: {reasons}")
             return
 
-    finish(run, "I ran out of steps before finding a purchase that fits your rules.")
+    finish(run, no_fit_message(ctx))
 
 
 def execute_run(run_id, pass_raw: bool | None = None) -> None:
@@ -285,7 +303,7 @@ def execute_run(run_id, pass_raw: bool | None = None) -> None:
     try:
         run_loop(run, pass_raw)
     except LLMError as exc:
-        logger.warning("Agent run %s stopped: %s", run.id, type(exc).__name__)
+        logger.warning("Agent run %s stopped: %s: %s", run.id, type(exc).__name__, exc)
         log(run, "error", message="The AI service is unavailable right now.")
         finish(run, "I couldn't finish because the AI service is unavailable. Please try again.", AgentRun.FAILED)
     except Exception:

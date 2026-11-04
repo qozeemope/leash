@@ -17,16 +17,16 @@ export interface GridContext {
 const theme = themeQuartz.withParams({
   backgroundColor: "var(--paper)",
   foregroundColor: "var(--ink)",
-  headerBackgroundColor: "var(--navy)",
-  headerTextColor: "var(--paper)",
-  borderColor: "var(--shade)",
-  accentColor: "var(--navy)",
-  oddRowBackgroundColor: "var(--wall)",
-  rowHoverColor: "var(--mist)",
-  fontFamily: "Verdana, Geneva, 'DejaVu Sans', sans-serif",
-  fontSize: 14,
+  headerBackgroundColor: "var(--soft)",
+  headerTextColor: "var(--muted)",
+  borderColor: "var(--line)",
+  accentColor: "var(--link)",
+  oddRowBackgroundColor: "var(--paper)",
+  rowHoverColor: "var(--bg)",
+  fontFamily: "'Cabin Variable', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif",
+  fontSize: 15,
   headerFontWeight: 700,
-  borderRadius: 0,
+  borderRadius: 10,
   wrapperBorderRadius: 0,
 });
 
@@ -98,12 +98,12 @@ function DecisionCell({ data, context }: ICellRendererParams<AuditEvent, unknown
 export default function AuditGrid({ events, context }: { events: AuditEvent[]; context: GridContext }) {
   const columns = useMemo<ColDef<AuditEvent>[]>(
     () => [
-      { headerName: "Time", field: "created_at", cellRenderer: TimeCell, minWidth: 190 },
-      { headerName: "What happened", cellRenderer: WhatCell, flex: 2, minWidth: 240 },
-      { headerName: "Outcome", field: "outcome", cellRenderer: OutcomeCell, minWidth: 190 },
-      { headerName: "Rules that fired", cellRenderer: RulesCell, flex: 1, minWidth: 200 },
-      { headerName: "Reasons", cellRenderer: ReasonsCell, flex: 3, minWidth: 340 },
-      { headerName: "Your decision", cellRenderer: DecisionCell, minWidth: 190 },
+      { headerName: "Time", field: "created_at", cellRenderer: TimeCell, flex: 1, minWidth: 130 },
+      { headerName: "What happened", cellRenderer: WhatCell, flex: 2, minWidth: 190 },
+      { headerName: "Outcome", field: "outcome", cellRenderer: OutcomeCell, flex: 1, minWidth: 130 },
+      { headerName: "Rules that fired", cellRenderer: RulesCell, flex: 1, minWidth: 130 },
+      { headerName: "Reasons", cellRenderer: ReasonsCell, flex: 3, minWidth: 220 },
+      { headerName: "Your decision", cellRenderer: DecisionCell, flex: 1, minWidth: 130 },
     ],
     [],
   );

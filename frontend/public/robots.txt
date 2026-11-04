@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://leash.example.com/sitemap.xml
+Sitemap: https://leash-api.onrender.com/sitemap.xml

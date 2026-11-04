@@ -48,11 +48,28 @@ export function normalizeRules(hits: unknown): string[] {
   for (const hit of hits) {
     if (typeof hit === "string") out.push(hit);
     else if (isRecord(hit)) {
-      const name = [hit.rule, hit.id, hit.name, hit.code].find((value): value is string => typeof value === "string");
+      const name = [hit.rule_id, hit.rule, hit.id, hit.name, hit.code].find(
+        (value): value is string => typeof value === "string",
+      );
       if (name) out.push(name);
     }
   }
   return out.map(humanizeRule);
+}
+
+function hitList(event: AuditEvent, payload: Record<string, unknown>): unknown[] {
+  const decision = isRecord(payload.decision) ? payload.decision.hits : undefined;
+  for (const source of [event.rule_hits, payload.hits, decision]) {
+    const list = isRecord(source) && Array.isArray(source.hits) ? source.hits : source;
+    if (Array.isArray(list) && list.length > 0) return list;
+  }
+  return [];
+}
+
+function hitMessages(hits: unknown[]): string[] {
+  return hits.flatMap((hit) =>
+    isRecord(hit) && typeof hit.message === "string" && hit.message.trim() !== "" ? [hit.message] : [],
+  );
 }
 
 export function resolutionLabel(resolution: AuditResolution): string {
@@ -61,14 +78,16 @@ export function resolutionLabel(resolution: AuditResolution): string {
 
 export function describeEvent(event: AuditEvent): EventView {
   const payload = isRecord(event.payload) ? event.payload : {};
-  const reasons = Array.isArray(payload.reasons)
+  const hits = hitList(event, payload);
+  const fromPayload = Array.isArray(payload.reasons)
     ? payload.reasons.filter((item): item is string => typeof item === "string")
     : [];
+  const reasons = [...new Set([...fromPayload, ...hitMessages(hits)])];
   return {
     kindLabel: KIND_LABELS[event.kind] ?? event.kind,
     summary: describeItems(payload),
     amount: typeof payload.total_cents === "number" ? formatCents(payload.total_cents) : null,
-    rules: normalizeRules(event.rule_hits),
+    rules: normalizeRules(hits),
     reasons: reasons.map(plainReason),
   };
 }

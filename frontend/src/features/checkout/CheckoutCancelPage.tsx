@@ -15,7 +15,7 @@ export function CheckoutCancelPage() {
       <p>
         <Stamp outcome="escalate" />
       </p>
-      <Notice kind="success" title="Payment cancelled">
+      <Notice kind="info" title="Payment cancelled">
         No charge was made.
       </Notice>
       <p>

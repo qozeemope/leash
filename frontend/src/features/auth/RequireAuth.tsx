@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Button } from "../../shared/ui/Button";
 import { ErrorNotice } from "../../shared/ui/ErrorNotice";
+import { Loading } from "../../shared/ui/Loading";
 import { useAuth } from "./AuthContext";
 
 export function RequireAuth() {
@@ -8,11 +9,7 @@ export function RequireAuth() {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <p role="status" aria-live="polite">
-        Checking your session...
-      </p>
-    );
+    return <Loading label="Checking your session" />;
   }
 
   if (error) {

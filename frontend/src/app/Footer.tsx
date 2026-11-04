@@ -6,17 +6,18 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
-        <p>Leash was built for the PayPal AI Hackathon. It uses PayPal sandbox accounts only, so no real money moves.</p>
+        <p>
+          Leash is a hackathon project for the PayPal AI Hackathon. Payments run on PayPal sandbox accounts and no real
+          money moves.
+        </p>
         <ul>
           <li>
             <Link to="/">Home</Link>
           </li>
           <li>
-            {user ? <Link to="/dashboard">Dashboard</Link> : <Link to="/login">Sign in</Link>}
+            <Link to="/how-it-works">How it works</Link>
           </li>
-          <li>
-            <Link to="/styleguide">Style guide</Link>
-          </li>
+          <li>{user ? <Link to="/dashboard">Dashboard</Link> : <Link to="/login">Sign in</Link>}</li>
         </ul>
       </div>
     </footer>

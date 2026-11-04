@@ -1,11 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
 const LABELS: Record<string, string> = {
-  login: "Sign in",
-  styleguide: "Style guide",
+  "how-it-works": "How it works",
   dashboard: "Dashboard",
   checkout: "Checkout",
-  return: "Payment received",
+  return: "Payment result",
   cancel: "Payment cancelled",
   mandates: "Spending rules",
   new: "New rule",
@@ -13,11 +12,12 @@ const LABELS: Record<string, string> = {
 };
 
 const NO_PAGE = new Set(["checkout", "mandates"]);
+const NO_CRUMBS = new Set(["login", "how-it-works"]);
 
 export function Breadcrumbs() {
   const { pathname } = useLocation();
   const parts = pathname.split("/").filter(Boolean);
-  if (parts.length === 0) return null;
+  if (parts.length === 0 || NO_CRUMBS.has(parts[0] ?? "")) return null;
 
   const crumbs = parts.map((part, index) => ({
     label: LABELS[part] ?? (parts[index - 1] === "mandates" ? "Rule details" : "Page not found"),

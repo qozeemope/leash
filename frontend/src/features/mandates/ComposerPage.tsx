@@ -11,6 +11,7 @@ import type {
 import { Box } from "../../shared/ui/Box";
 import { Button } from "../../shared/ui/Button";
 import { ErrorNotice } from "../../shared/ui/ErrorNotice";
+import { Loading } from "../../shared/ui/Loading";
 import { Notice } from "../../shared/ui/Notice";
 import { PageMeta } from "../../shared/ui/PageMeta";
 import { TextField } from "../../shared/ui/TextField";
@@ -71,7 +72,7 @@ export function ComposerPage() {
       <h1>Write a spending rule</h1>
       <p>Say what your agent may buy, how much it may spend, and any limits that matter. Nothing is signed until you confirm.</p>
 
-      <Box title="Your rule">
+      <Box title="Your rule" tone="card">
         <TextField
           multiline
           label="What may the agent buy?"
@@ -84,12 +85,10 @@ export function ComposerPage() {
           {text.length} of {MAX_LENGTH} characters
         </p>
         <Button variant="primary" onClick={check} disabled={!canCheck}>
-          {parse.isPending ? "Reading your rule..." : "Check my rule"}
+          {parse.isPending ? "Reading your rule" : "Check my rule"}
         </Button>
         {parse.isPending ? (
-          <p role="status" aria-live="polite">
-            This can take a few seconds.
-          </p>
+          <Loading label="This can take a few seconds" />
         ) : null}
       </Box>
 
@@ -98,7 +97,7 @@ export function ComposerPage() {
       ) : null}
 
       {needsMore ? (
-        <Box title="More detail needed" tone="wall">
+        <Box title="More detail needed" tone="card">
           <p>The rule is missing information needed to set safe limits. Answer the questions below in the rule text, then check it again.</p>
           {needsMore.questions.length > 0 ? (
             <ul>
@@ -111,7 +110,7 @@ export function ComposerPage() {
       ) : null}
 
       {ready && ready.result.terms ? (
-        <Box title="Check these limits" tone="gold">
+        <Box title="Check these limits" tone="focus">
           <p>These are the limits Leash read from the rule. The agent is held to exactly these limits once signed.</p>
           {ready.result.summary.length > 0 ? (
             <ul>
@@ -131,7 +130,7 @@ export function ComposerPage() {
           ) : null}
           <div className="btn-row">
             <Button variant="approve" onClick={confirm} disabled={sign.isPending}>
-              {sign.isPending ? "Signing..." : "Sign these limits"}
+              {sign.isPending ? "Signing" : "Sign these limits"}
             </Button>
             <Button onClick={() => edit(ready.text)} disabled={sign.isPending}>
               Change my rule

@@ -55,3 +55,27 @@ test("describeEvent copes with an empty or odd payload", () => {
   assert.equal(view.amount, null);
   assert.deepEqual(view.reasons, []);
 });
+
+test("describeEvent reads rule ids and messages from policy hit objects", () => {
+  const view = describeEvent(
+    event({
+      rule_hits: [
+        { rule_id: "R_CATEGORY", outcome: "block", message: "'Home Jersey' is category 'soccer uniforms', which the mandate does not allow." },
+        { rule_id: "R_ITEM_CAP", outcome: "block", message: "'Home Jersey' costs $98.28, above the $50.00 per-item cap." },
+      ],
+      payload: { items: [{ title: "Home Jersey", unit_price_cents: 9828, quantity: 1 }] },
+    }),
+  );
+  assert.deepEqual(view.rules, ["Category", "Item cap"]);
+  assert.equal(view.reasons.length, 2);
+  assert.match(view.reasons[0] ?? "", /does not allow/);
+  assert.equal(view.summary, "Home Jersey ($98.28). Total $98.28.");
+});
+
+test("describeEvent accepts hits wrapped in a decision object", () => {
+  const view = describeEvent(
+    event({ rule_hits: { hits: [{ rule_id: "R_ORIGIN", message: "Action was triggered by untrusted page/tool content." }] } }),
+  );
+  assert.deepEqual(view.rules, ["Untrusted origin"]);
+  assert.equal(view.reasons.length, 1);
+});

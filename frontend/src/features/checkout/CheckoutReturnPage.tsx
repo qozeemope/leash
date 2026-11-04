@@ -6,7 +6,8 @@ import type { CaptureResponse, OrderStatus } from "../../shared/api/types";
 import { Button, ButtonLink } from "../../shared/ui/Button";
 import { ErrorNotice } from "../../shared/ui/ErrorNotice";
 import { Notice, type NoticeKind } from "../../shared/ui/Notice";
-import { Odometer } from "../../shared/ui/Odometer";
+import { Loading } from "../../shared/ui/Loading";
+import { formatCents } from "../../shared/money";
 import { PageMeta } from "../../shared/ui/PageMeta";
 import { Stamp } from "../../shared/ui/Stamp";
 import { recallCheckout } from "./checkoutMemory";
@@ -80,9 +81,7 @@ export function CheckoutReturnPage() {
       ) : null}
 
       {orderId && (isPending || isIdle) ? (
-        <p role="status" aria-live="polite">
-          Confirming the payment with PayPal. Keep this page open.
-        </p>
+        <Loading label="Confirming the payment with PayPal. Keep this page open." />
       ) : null}
 
       {view ? (
@@ -92,7 +91,12 @@ export function CheckoutReturnPage() {
               <p>
                 <Stamp outcome="approve" />
               </p>
-              {memory && memory.totalCents !== null ? <Odometer cents={memory.totalCents} label="Paid in sandbox money" /> : null}
+              {memory && memory.totalCents !== null ? (
+                <p className="figure">
+                  <span className="figure-value">{formatCents(memory.totalCents)}</span>
+                  <span className="figure-label">Paid in sandbox money</span>
+                </p>
+              ) : null}
             </>
           ) : null}
           {view.kind === "error" ? (

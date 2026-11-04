@@ -1,12 +1,20 @@
 import type { ReactNode } from "react";
+import { Icon, type IconName } from "./Icon";
 
 export type NoticeKind = "info" | "success" | "warn" | "error";
 
+const ICON: Record<NoticeKind, IconName> = {
+  info: "info",
+  success: "check",
+  warn: "warning",
+  error: "cross",
+};
+
 const LABEL: Record<NoticeKind, string> = {
-  info: "Note:",
-  success: "Confirmed:",
-  warn: "Warning:",
-  error: "Error:",
+  info: "Information",
+  success: "Confirmed",
+  warn: "Warning",
+  error: "Error",
 };
 
 interface NoticeProps {
@@ -19,8 +27,11 @@ export function Notice({ kind = "info", title, children }: NoticeProps) {
   const kindClass = kind === "info" ? "" : ` notice-${kind}`;
   return (
     <div className={`notice${kindClass}`} role={kind === "error" ? "alert" : "status"}>
-      <span className="notice-label">{LABEL[kind]}</span>
+      <span className="notice-icon">
+        <Icon name={ICON[kind]} />
+      </span>
       <div className="notice-body">
+        <span className="visually-hidden">{LABEL[kind]}: </span>
         {title ? <p className="notice-title">{title}</p> : null}
         {children ? <p>{children}</p> : null}
       </div>

@@ -6,7 +6,7 @@ interface PageMetaProps {
 }
 
 const SITE = "Leash";
-const ORIGIN = "https://leash.example.com";
+const ORIGIN = "https://leash-api.onrender.com";
 
 export function PageMeta({ title, description, path, indexable = true }: PageMetaProps) {
   const fullTitle = path === "/" ? `${SITE}: ${title}` : `${title} | ${SITE}`;

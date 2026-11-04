@@ -1,7 +1,10 @@
 export function SandboxStrip() {
   return (
     <aside className="sandbox-strip" aria-label="Sandbox notice">
-      <p>Sandbox mode: all payments use PayPal test accounts. No real money moves.</p>
+      <p>
+        <span className="sandbox-dot" aria-hidden="true" />
+        Sandbox mode. Payments use PayPal test accounts and no real money moves.
+      </p>
     </aside>
   );
 }

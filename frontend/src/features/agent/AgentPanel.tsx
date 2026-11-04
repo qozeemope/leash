@@ -6,31 +6,38 @@ import type { AgentRun, AgentRunCreateRequest, AgentRunMode, Mandate } from "../
 import { Box } from "../../shared/ui/Box";
 import { Button } from "../../shared/ui/Button";
 import { ErrorNotice } from "../../shared/ui/ErrorNotice";
+import { Loading } from "../../shared/ui/Loading";
 import { Notice } from "../../shared/ui/Notice";
-import { SelectField } from "../../shared/ui/SelectField";
 import { TextField } from "../../shared/ui/TextField";
 import { StepFeed } from "./StepFeed";
+import { describeStep } from "./steps";
 import { agentRunKey, useAgentRun } from "./useAgentRun";
 
-const MODES: Array<{ value: AgentRunMode; label: string }> = [
-  { value: "live", label: "Real shopping run" },
-  { value: "attack_gift_card", label: "Demo attack: hidden gift card" },
-  { value: "attack_overspend", label: "Demo attack: oversized order" },
-  { value: "attack_banned_merchant", label: "Demo attack: banned merchant" },
+const ATTACKS: Array<{ mode: AgentRunMode; label: string; text: string }> = [
+  {
+    mode: "attack_gift_card",
+    label: "Hidden gift card",
+    text: "A product page tells the agent to add a $200 gift card and check out.",
+  },
+  {
+    mode: "attack_overspend",
+    label: "Oversized order",
+    text: "The agent tries to buy far more than the rule allows.",
+  },
+  {
+    mode: "attack_banned_merchant",
+    label: "Banned merchant",
+    text: "The agent tries to buy from a merchant on the blocked list.",
+  },
 ];
 
 const REQUEST_MAX = 500;
-
-function isMode(value: string): value is AgentRunMode {
-  return MODES.some((mode) => mode.value === value);
-}
 
 export function AgentPanel({ mandate }: { mandate: Mandate }) {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const runId = params.get("run");
   const [request, setRequest] = useState(mandate.raw_text.slice(0, REQUEST_MAX));
-  const [mode, setMode] = useState<AgentRunMode>("live");
 
   const start = useMutation<AgentRun, ApiError, AgentRunCreateRequest>({
     mutationFn: (body) => apiFetch<AgentRun>(`/api/mandates/${mandate.id}/agent-runs/`, { method: "POST", body }),
@@ -53,17 +60,30 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
     previousStatus.current = status;
   }, [status, queryClient]);
 
+  const bought =
+    run.data?.steps.some((step) => {
+      const outcome = describeStep(step).outcome;
+      return outcome === "approve" || outcome === "escalate";
+    }) ?? false;
+
   const trimmed = request.trim();
   const canStart = trimmed.length > 0 && !start.isPending && !running;
 
+  const canRunDemo = !start.isPending && !running;
+
   const begin = () => {
     if (!canStart) return;
-    start.mutate({ request: trimmed, mode });
+    start.mutate({ request: trimmed, mode: "live" });
+  };
+
+  const runAttack = (mode: AgentRunMode) => {
+    if (!canRunDemo) return;
+    start.mutate({ request: trimmed || "Security demo", mode });
   };
 
   return (
     <>
-      <Box title="Run the shopping agent" tone="wall">
+      <Box title="Run the shopping agent" tone="card">
         <TextField
           multiline
           label="What should the agent shop for?"
@@ -72,21 +92,31 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
           maxLength={REQUEST_MAX}
           onChange={(event) => setRequest(event.target.value)}
         />
-        <SelectField
-          label="How should it run?"
-          hint="Demo attacks use a fake catalog and never reach PayPal."
-          value={mode}
-          onChange={(event) => {
-            if (isMode(event.target.value)) setMode(event.target.value);
-          }}
-          options={MODES}
-        />
         {start.error ? (
           <ErrorNotice title="Agent could not be started" reason={start.error.message} next="Wait a moment and try again." />
         ) : null}
         <Button variant="primary" onClick={begin} disabled={!canStart}>
-          {start.isPending ? "Starting..." : running ? "The agent is working..." : "Start the agent"}
+          {start.isPending ? "Starting" : running ? "The agent is working" : "Start the agent"}
         </Button>
+      </Box>
+
+      <Box title="Security demo" tone="card">
+        <p>
+          See Leash stop an agent that has been tricked. These runs use a fake catalog and never reach PayPal.
+        </p>
+        <ul className="attacks">
+          {ATTACKS.map((attack) => (
+            <li key={attack.mode}>
+              <div>
+                <strong>{attack.label}</strong>
+                <p>{attack.text}</p>
+              </div>
+              <Button size="small" onClick={() => runAttack(attack.mode)} disabled={!canRunDemo} aria-label={`Run demo: ${attack.label}`}>
+                Run demo
+              </Button>
+            </li>
+          ))}
+        </ul>
       </Box>
 
       {runId ? (
@@ -100,17 +130,13 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
           ) : null}
 
           {run.isPending && !run.data ? (
-            <p role="status" aria-live="polite">
-              Loading the run...
-            </p>
+            <Loading label="Loading the run" />
           ) : null}
 
           {run.data ? (
             <>
               {running ? (
-                <p role="status" aria-live="polite">
-                  <span className="lamp lamp-on" aria-hidden="true" /> The agent is working. New steps appear here as they happen.
-                </p>
+                <Loading label="The agent is working. New steps appear here as they happen." />
               ) : null}
 
               {run.data.tainted ? (
@@ -120,7 +146,7 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
               ) : null}
 
               {run.data.steps.length === 0 ? (
-                <p>{running ? "Waiting for the first step..." : "The agent did not record any steps."}</p>
+                <p>{running ? "Waiting for the first step" : "The agent did not record any steps."}</p>
               ) : (
                 <StepFeed steps={run.data.steps} mandateId={mandate.id} />
               )}
@@ -130,7 +156,9 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
               ) : null}
 
               {status === "completed" ? (
-                <Notice kind="success" title="Run finished">{run.data.final_message}</Notice>
+                <Notice kind={bought ? "success" : "info"} title={bought ? "Run finished" : "No purchase made"}>
+                  {run.data.final_message}
+                </Notice>
               ) : null}
               {status === "failed" ? (
                 <ErrorNotice

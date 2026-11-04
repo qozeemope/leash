@@ -8,6 +8,7 @@ import { formatMoney } from "../../shared/money";
 import { Button, ButtonLink } from "../../shared/ui/Button";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { ErrorNotice } from "../../shared/ui/ErrorNotice";
+import { Loading } from "../../shared/ui/Loading";
 
 export function MandateList() {
   const [page, setPage] = useState(1);
@@ -17,11 +18,7 @@ export function MandateList() {
   });
 
   if (isPending) {
-    return (
-      <p role="status" aria-live="polite">
-        Loading your rules...
-      </p>
-    );
+    return <Loading label="Loading your rules" />;
   }
 
   if (error) {
@@ -40,7 +37,7 @@ export function MandateList() {
         title="Set a limit before your agent shops"
         description="A spending rule caps the budget, categories and merchants your agent can use. Leash checks every purchase against it."
         action={
-          <ButtonLink to="/mandates/new" variant="gold">
+          <ButtonLink to="/mandates/new" variant="primary">
             Write your first rule
           </ButtonLink>
         }
@@ -84,7 +81,7 @@ export function MandateList() {
           Next
         </Button>
       </div>
-      <ButtonLink to="/mandates/new" variant="gold">
+      <ButtonLink to="/mandates/new" variant="primary">
         Write a new rule
       </ButtonLink>
     </div>

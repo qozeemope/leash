@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "../shared/ui/Button";
+import { Button, ButtonLink } from "../shared/ui/Button";
 import { CrashNotice } from "../shared/ui/CrashNotice";
 import { ErrorBoundary } from "../shared/ui/ErrorBoundary";
 import { Logo } from "../shared/ui/Logo";
@@ -34,11 +34,35 @@ export function AppShell() {
       <header className="masthead">
         <div className="masthead-inner">
           <Logo />
-          <div className="masthead-side">
+          <nav className="mainnav" aria-label="Main">
+            <ul className="tabs">
+              <li>
+                <NavLink to="/" end>
+                  Home
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/how-it-works">How it works</NavLink>
+              </li>
+              {user ? (
+                <>
+                  <li>
+                    <NavLink to="/dashboard">Dashboard</NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/mandates/new">New rule</NavLink>
+                  </li>
+                </>
+              ) : null}
+            </ul>
+          </nav>
+          <div className="account">
             {user ? (
-              <p className="account">
-                Signed in as {user.username}
-                {user.is_demo ? " (demo)" : ""}{" "}
+              <>
+                <span className="account-name">
+                  {user.username}
+                  {user.is_demo ? " (demo)" : ""}
+                </span>
                 <Button
                   size="small"
                   onClick={() => {
@@ -47,34 +71,12 @@ export function AppShell() {
                 >
                   Sign out
                 </Button>
-              </p>
-            ) : null}
-            <nav aria-label="Main">
-              <ul className="tabs">
-                <li>
-                  <NavLink to="/" end>
-                    Home
-                  </NavLink>
-                </li>
-                {user ? (
-                  <>
-                    <li>
-                      <NavLink to="/dashboard">Dashboard</NavLink>
-                    </li>
-                    <li>
-                      <NavLink to="/mandates/new">New rule</NavLink>
-                    </li>
-                  </>
-                ) : (
-                  <li>
-                    <NavLink to="/login">Sign in</NavLink>
-                  </li>
-                )}
-                <li>
-                  <NavLink to="/styleguide">Style guide</NavLink>
-                </li>
-              </ul>
-            </nav>
+              </>
+            ) : (
+              <ButtonLink to="/login" size="small">
+                Sign in
+              </ButtonLink>
+            )}
           </div>
         </div>
       </header>

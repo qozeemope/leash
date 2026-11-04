@@ -42,7 +42,7 @@ export function StepFeed({ steps, mandateId }: { steps: AgentStep[]; mandateId: 
               <p className="feed-action">
                 <ButtonAnchor
                   href={view.approveUrl}
-                  variant="gold"
+                  variant="primary"
                   onClick={() => rememberCheckout(view.approveUrl ?? "", { mandateId, totalCents: view.totalCents })}
                 >
                   Approve payment on PayPal

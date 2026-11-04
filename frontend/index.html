@@ -5,9 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Leash: a spending limit for AI shopping agents</title>
     <meta name="description" content="Tell an AI shopping agent how much it may spend, on what, and where. Leash checks every purchase against your signed rules and shows you why it said yes, asked you, or said no." />
-    <meta name="theme-color" content="#003366" />
+    <meta name="theme-color" content="#F7FAFF" />
+    <style>
+      html, body { margin: 0; background: #F7FAFF; }
+      .boot { min-height: 100vh; display: grid; place-items: center; font: 800 1.75rem system-ui, sans-serif; color: #26262B; letter-spacing: 0.01em; }
+    </style>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="canonical" href="https://leash.example.com/" />
+    <link rel="canonical" href="https://leash-api.onrender.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Leash" />
     <meta property="og:title" content="Leash: a spending limit for AI shopping agents" />
@@ -26,7 +30,7 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot" aria-hidden="true">Leash</div></div>
     <noscript>
       <h1>Leash</h1>
       <p>Leash is a spending limit for AI shopping agents. It needs JavaScript to run. Every purchase an agent proposes is checked against your signed rules, then approved, escalated to you, or blocked, with the reason recorded.</p>

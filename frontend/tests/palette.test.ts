@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { contrastRatio, isWebSafe, parseHex } from "../src/shared/a11y/contrast.ts";
+import { contrastRatio, parseHex } from "../src/shared/a11y/contrast.ts";
 
-const css = readFileSync(new URL("../src/styles/retro.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("../src/styles/theme.css", import.meta.url), "utf8");
 const rootMatch = /:root\s*\{([^}]*)\}/.exec(css);
 const rootBlock = rootMatch?.[1] ?? "";
 const rest = css.replace(/:root\s*\{[^}]*\}/, "");
@@ -18,10 +18,10 @@ function tokens(): Map<string, string> {
   return map;
 }
 
-test("every colour token is on the web-safe 216 palette", () => {
+test("every colour token is a valid hex value", () => {
   const all = tokens();
   assert.ok(all.size > 0);
-  for (const [name, value] of all) assert.ok(isWebSafe(value), `--${name} ${value} is not web-safe`);
+  for (const [name, value] of all) assert.ok(parseHex(value), `--${name} ${value} is not valid hex`);
 });
 
 test("hex colours appear only inside :root", () => {
@@ -35,13 +35,16 @@ test("no rgb(), hsl() or oklch() colours in rules", () => {
 test("text and surface pairs meet WCAG AA (4.5:1)", () => {
   const t = tokens();
   const pairs: [string, string][] = [
-    ["ink", "wall"], ["ink", "paper"], ["paper", "navy"], ["ink", "gold"],
-    ["link", "wall"], ["link", "paper"], ["visited", "paper"], ["paper", "navy-hi"],
-    ["ink", "sky"], ["ink", "mist"], ["ink", "face"], ["deep", "paper"],
+    ["ink", "bg"], ["ink", "paper"], ["ink", "soft"],
+    ["muted", "bg"], ["muted", "paper"], ["muted", "soft"],
+    ["link", "bg"], ["link", "paper"],
+    ["ink", "blue"], ["ink", "blue-soft"], ["ink", "yellow"], ["ink", "yellow-soft"],
+    ["ink", "mint"], ["ink", "pink"], ["ink", "lavender"],
+    ["ink", "glow-yellow"], ["ink", "glow-pink"], ["ink", "glow-lavender"],
+    ["muted", "glow-yellow"], ["muted", "glow-pink"], ["muted", "glow-lavender"],
     ["paper", "approve"], ["approve-ink", "approve-bg"], ["approve", "paper"],
-    ["escalate-ink", "escalate-bg"], ["paper", "escalate"],
+    ["paper", "escalate"], ["escalate-ink", "escalate-bg"], ["escalate", "paper"],
     ["paper", "block"], ["block-ink", "block-bg"], ["block", "paper"],
-    ["paper", "sale"], ["paper", "ink"], ["gold", "ink"], ["mist", "navy"],
   ];
   for (const [fg, bg] of pairs) {
     const a = parseHex(t.get(fg) ?? "");
@@ -50,4 +53,9 @@ test("text and surface pairs meet WCAG AA (4.5:1)", () => {
     const ratio = contrastRatio(a, b);
     assert.ok(ratio >= 4.5, `${fg} on ${bg} is ${ratio.toFixed(2)}:1`);
   }
+});
+
+test("the theme defines focus styles and respects reduced motion", () => {
+  assert.ok(/:focus-visible/.test(css));
+  assert.ok(/prefers-reduced-motion/.test(css));
 });

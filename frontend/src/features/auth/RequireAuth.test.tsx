@@ -38,7 +38,7 @@ describe("RequireAuth", () => {
   it("waits while the session is being checked", () => {
     auth.current = { ...auth.current, loading: true };
     renderAt("/dashboard");
-    expect(screen.getByText("Checking your session...")).toBeTruthy();
+    expect(screen.getByText("Checking your session")).toBeTruthy();
     expect(screen.queryByText("Secret page")).toBeNull();
   });
 

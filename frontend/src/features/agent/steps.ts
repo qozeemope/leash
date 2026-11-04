@@ -57,16 +57,32 @@ function findReasons(data: Record<string, unknown>): string[] {
   return [];
 }
 
+function itemPrice(item: Record<string, unknown>): string | null {
+  if (typeof item.price === "string") return item.price;
+  if (typeof item.unit_price_cents === "number") return formatCents(item.unit_price_cents);
+  return null;
+}
+
+function itemsTotal(items: unknown[]): number | null {
+  let total = 0;
+  for (const item of items) {
+    if (!isRecord(item) || typeof item.unit_price_cents !== "number") return null;
+    total += item.unit_price_cents * (typeof item.quantity === "number" ? item.quantity : 1);
+  }
+  return total;
+}
+
 export function describeItems(data: Record<string, unknown>): string | null {
   if (!Array.isArray(data.items)) return null;
   const parts: string[] = [];
   for (const item of data.items) {
     if (!isRecord(item) || typeof item.title !== "string") continue;
-    const price = typeof item.price === "string" ? ` (${item.price})` : "";
-    parts.push(`${item.title}${price}`);
+    const price = itemPrice(item);
+    parts.push(price === null ? item.title : `${item.title} (${price})`);
   }
   if (parts.length === 0) return null;
-  const total = typeof data.total_cents === "number" ? ` Total ${formatCents(data.total_cents)}.` : "";
+  const totalCents = typeof data.total_cents === "number" ? data.total_cents : itemsTotal(data.items);
+  const total = totalCents === null ? "" : ` Total ${formatCents(totalCents)}.`;
   return `${parts.join("; ")}.${total}`;
 }
 
