@@ -33,7 +33,14 @@ const ATTACKS: Array<{ mode: AgentRunMode; label: string; text: string }> = [
 
 const REQUEST_MAX = 500;
 
-export function AgentPanel({ mandate }: { mandate: Mandate }) {
+type PanelView = "live" | "demo";
+
+interface AgentPanelProps {
+  mandate: Mandate;
+  view: PanelView;
+}
+
+export function AgentPanel({ mandate, view }: AgentPanelProps) {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const runId = params.get("run");
@@ -51,6 +58,11 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
   const status = run.data?.status;
   const running = status === "running";
   const previousStatus = useRef(status);
+  const feedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (runId) feedRef.current?.scrollIntoView({ block: "start" });
+  }, [runId]);
 
   useEffect(() => {
     if (previousStatus.current === "running" && status && status !== "running") {
@@ -76,100 +88,128 @@ export function AgentPanel({ mandate }: { mandate: Mandate }) {
     start.mutate({ request: trimmed, mode: "live" });
   };
 
-  const runAttack = (mode: AgentRunMode) => {
+  const runDemo = (mode: AgentRunMode) => {
     if (!canRunDemo) return;
-    start.mutate({ request: trimmed || "Security demo", mode });
+    start.mutate({ request: mandate.raw_text.trim().slice(0, REQUEST_MAX) || "Simulation", mode });
   };
 
   return (
     <>
-      <Box title="Run the shopping agent" tone="card">
-        <TextField
-          multiline
-          label="What should the agent shop for?"
-          hint="Keep it short. The agent still has to stay inside your signed limits."
-          value={request}
-          maxLength={REQUEST_MAX}
-          onChange={(event) => setRequest(event.target.value)}
-        />
-        {start.error ? (
-          <ErrorNotice title="Agent could not be started" reason={start.error.message} next="Wait a moment and try again." />
-        ) : null}
-        <Button variant="primary" onClick={begin} disabled={!canStart}>
-          {start.isPending ? "Starting" : running ? "The agent is working" : "Start the agent"}
-        </Button>
-      </Box>
+      {view === "live" ? (
+        <Box title="Run the shopping agent" tone="card">
+          <TextField
+            multiline
+            label="What should the agent shop for?"
+            hint="Keep it short. The agent still has to stay inside your signed limits."
+            value={request}
+            maxLength={REQUEST_MAX}
+            onChange={(event) => setRequest(event.target.value)}
+          />
+          {start.error ? (
+            <ErrorNotice title="Agent could not be started" reason={start.error.message} next="Wait a moment and try again." />
+          ) : null}
+          <Button variant="primary" onClick={begin} disabled={!canStart}>
+            {start.isPending ? "Starting" : running ? "The agent is working" : "Start the agent"}
+          </Button>
+        </Box>
+      ) : (
+        <>
+          <Notice kind="info" title="Simulation">
+            These runs use a scripted agent and a fake product catalog. No AI model is involved. Attack runs never reach
+            PayPal. The guided purchase creates a PayPal sandbox order that you can pay with a test account.
+          </Notice>
 
-      <Box title="Security demo" tone="card">
-        <p>
-          See Leash stop an agent that has been tricked. These runs use a fake catalog and never reach PayPal.
-        </p>
-        <ul className="attacks">
-          {ATTACKS.map((attack) => (
-            <li key={attack.mode}>
-              <div>
-                <strong>{attack.label}</strong>
-                <p>{attack.text}</p>
-              </div>
-              <Button size="small" onClick={() => runAttack(attack.mode)} disabled={!canRunDemo} aria-label={`Run demo: ${attack.label}`}>
-                Run demo
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </Box>
+          {start.error ? (
+            <ErrorNotice title="Simulation could not be started" reason={start.error.message} next="Wait a moment and try again." />
+          ) : null}
+
+          <Box title="Guided purchase" tone="card">
+            <p>
+              The scripted agent searches the demo catalog for something that fits this rule. Leash checks it, and if it
+              fits, creates a sandbox order for you to approve on PayPal.
+            </p>
+            <Button variant="primary" onClick={() => runDemo("demo_purchase")} disabled={!canRunDemo}>
+              Run guided purchase
+            </Button>
+          </Box>
+
+          <Box title="Attack simulations" tone="card">
+            <p>See Leash stop an agent that has been tricked. Nothing here reaches PayPal.</p>
+            <ul className="attacks">
+              {ATTACKS.map((attack) => (
+                <li key={attack.mode}>
+                  <div>
+                    <strong>{attack.label}</strong>
+                    <p>{attack.text}</p>
+                  </div>
+                  <Button
+                    size="small"
+                    onClick={() => runDemo(attack.mode)}
+                    disabled={!canRunDemo}
+                    aria-label={`Run simulation: ${attack.label}`}
+                  >
+                    Run simulation
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Box>
+        </>
+      )}
 
       {runId ? (
-        <Box title="Agent activity">
-          {run.error && !run.data ? (
-            <ErrorNotice
-              title="Agent activity could not be loaded"
-              reason={run.error.message}
-              action={<Button onClick={() => void run.refetch()}>Retry</Button>}
-            />
-          ) : null}
+        <div ref={feedRef} className="feed-anchor">
+          <Box title={view === "demo" ? "Simulation activity" : "Agent activity"}>
+            {run.error && !run.data ? (
+              <ErrorNotice
+                title="Agent activity could not be loaded"
+                reason={run.error.message}
+                action={<Button onClick={() => void run.refetch()}>Retry</Button>}
+              />
+            ) : null}
 
-          {run.isPending && !run.data ? (
-            <Loading label="Loading the run" />
-          ) : null}
+            {run.isPending && !run.data ? (
+              <Loading label="Loading the run" />
+            ) : null}
 
-          {run.data ? (
-            <>
-              {running ? (
-                <Loading label="The agent is working. New steps appear here as they happen." />
-              ) : null}
+            {run.data ? (
+              <>
+                {running ? (
+                  <Loading label="The agent is working. New steps appear here as they happen." />
+                ) : null}
 
-              {run.data.tainted ? (
-                <Notice kind="warn" title="Attack text detected">
-                  The agent read text in a product listing that tried to give it instructions. Any purchase proposed because of that text is blocked.
-                </Notice>
-              ) : null}
+                {run.data.tainted ? (
+                  <Notice kind="warn" title="Attack text detected">
+                    The agent read text in a product listing that tried to give it instructions. Any purchase proposed because of that text is blocked.
+                  </Notice>
+                ) : null}
 
-              {run.data.steps.length === 0 ? (
-                <p>{running ? "Waiting for the first step" : "The agent did not record any steps."}</p>
-              ) : (
-                <StepFeed steps={run.data.steps} mandateId={mandate.id} />
-              )}
+                {run.data.steps.length === 0 ? (
+                  <p>{running ? "Waiting for the first step" : "The agent did not record any steps."}</p>
+                ) : (
+                  <StepFeed steps={run.data.steps} mandateId={mandate.id} />
+                )}
 
-              {run.error ? (
-                <Notice kind="warn" title="Connection interrupted">Updates resume automatically when the server responds.</Notice>
-              ) : null}
+                {run.error ? (
+                  <Notice kind="warn" title="Connection interrupted">Updates resume automatically when the server responds.</Notice>
+                ) : null}
 
-              {status === "completed" ? (
-                <Notice kind={bought ? "success" : "info"} title={bought ? "Run finished" : "No purchase made"}>
-                  {run.data.final_message}
-                </Notice>
-              ) : null}
-              {status === "failed" ? (
-                <ErrorNotice
-                  title="Agent run failed"
-                  reason={run.data.final_message || "The agent stopped before it finished."}
-                  next="Start a new run to try again."
-                />
-              ) : null}
-            </>
-          ) : null}
-        </Box>
+                {status === "completed" ? (
+                  <Notice kind={bought ? "success" : "info"} title={bought ? "Run finished" : "No purchase made"}>
+                    {run.data.final_message}
+                  </Notice>
+                ) : null}
+                {status === "failed" ? (
+                  <ErrorNotice
+                    title="Agent run failed"
+                    reason={run.data.final_message || "The agent stopped before it finished."}
+                    next="Start a new run to try again."
+                  />
+                ) : null}
+              </>
+            ) : null}
+          </Box>
+        </div>
       ) : null}
     </>
   );

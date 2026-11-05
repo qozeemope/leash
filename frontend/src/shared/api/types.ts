@@ -130,7 +130,7 @@ export interface CaptureResponse {
   status: OrderStatus;
 }
 
-export type AgentRunMode = "live" | "attack_gift_card" | "attack_overspend" | "attack_banned_merchant";
+export type AgentRunMode = "live" | "demo_purchase" | "attack_gift_card" | "attack_overspend" | "attack_banned_merchant";
 export type AgentRunStatus = "running" | "completed" | "failed";
 
 export interface AgentStep {

@@ -405,6 +405,7 @@ textarea.field-input { min-height: calc(var(--tap) * 3); resize: vertical; }
 .table tbody tr:last-child > * { border-bottom: 0; }
 .table tbody th { font-weight: 600; min-width: 12rem; }
 
+.feed-anchor { scroll-margin-top: var(--s-5); }
 .attacks { margin: 0; padding: 0; list-style: none; max-width: none; }
 .attacks li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3) var(--s-5); margin: 0; padding: var(--s-4) 0; border-top: 1px solid var(--line); }
 .attacks li:last-child { padding-bottom: 0; }

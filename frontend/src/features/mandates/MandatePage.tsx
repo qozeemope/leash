@@ -84,10 +84,13 @@ export function MandatePage() {
           <Box title="Signed limits">
             <TermsList terms={data.terms} />
           </Box>
-          <AgentPanel mandate={data} />
+          <AgentPanel mandate={data} view="live" />
           <div className="btn-row">
             <ButtonLink to={`/mandates/${data.id}/audit`} variant="primary">
               Open the audit log
+            </ButtonLink>
+            <ButtonLink to={`/mandates/${data.id}/demo`} variant="quiet">
+              Open the simulation demo
             </ButtonLink>
             <ButtonLink to="/dashboard">Back to the dashboard</ButtonLink>
           </div>

@@ -8,6 +8,7 @@ import { RequireAuth } from "../features/auth/RequireAuth";
 import { ComposerPage } from "../features/mandates/ComposerPage";
 import { AuditPage } from "../features/audit/AuditPage";
 import { MandatePage } from "../features/mandates/MandatePage";
+import { DemoPage } from "../features/mandates/DemoPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { CheckoutReturnPage } from "../features/checkout/CheckoutReturnPage";
 import { CheckoutCancelPage } from "../features/checkout/CheckoutCancelPage";
@@ -24,6 +25,7 @@ export function App() {
           <Route path="mandates/new" element={<ComposerPage />} />
           <Route path="mandates/:mandateId" element={<MandatePage />} />
           <Route path="mandates/:mandateId/audit" element={<AuditPage />} />
+          <Route path="mandates/:mandateId/demo" element={<DemoPage />} />
           <Route path="checkout/return" element={<CheckoutReturnPage />} />
           <Route path="checkout/cancel" element={<CheckoutCancelPage />} />
         </Route>
