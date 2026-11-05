@@ -56,10 +56,10 @@ export function LandingPage() {
         </div>
       </section>
 
-      <Box title="Watch Leash stop an attack" tone="focus">
+      <Box title="Every decision is on the record" tone="focus">
         <p>
-          The demo lets an agent read a product page with hidden instructions. The agent follows them. Leash blocks the
-          purchase, and the audit log lists every rule that applied.
+          Each purchase an agent proposes is checked against your rule. Leash approves it, asks you, or blocks it, and the
+          audit log shows which rules applied and why.
         </p>
         {cta}
       </Box>

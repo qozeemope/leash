@@ -3,7 +3,7 @@ services:
     name: leash-api
     runtime: docker
     region: frankfurt
-    plan: free
+    plan: starter
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health/
@@ -32,6 +32,10 @@ services:
         sync: false
       - key: LLM_API_KEY
         sync: false
+      - key: LLM_MAX_RETRIES
+        value: "1"
+      - key: AGENT_STRATEGY
+        value: planned
       - key: PRODUCT_SEARCH_PROVIDER
         value: channel3
       - key: CHANNEL3_API_KEY

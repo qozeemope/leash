@@ -52,6 +52,9 @@ export function AppShell() {
                   <li>
                     <NavLink to="/mandates/new">New rule</NavLink>
                   </li>
+                  <li>
+                    <NavLink to="/audit">Audit log</NavLink>
+                  </li>
                 </>
               ) : null}
             </ul>
@@ -66,7 +69,9 @@ export function AppShell() {
                 <Button
                   size="small"
                   onClick={() => {
-                    void signOut().then(() => navigate("/", { replace: true }));
+                    void signOut()
+                      .catch(() => undefined)
+                      .then(() => navigate("/", { replace: true }));
                   }}
                 >
                   Sign out

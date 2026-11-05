@@ -9,7 +9,6 @@ const LABELS: Record<string, string> = {
   mandates: "Spending rules",
   new: "New rule",
   audit: "Audit log",
-  demo: "Simulation",
 };
 
 const NO_PAGE = new Set(["checkout", "mandates"]);

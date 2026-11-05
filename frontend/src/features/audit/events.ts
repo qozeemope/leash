@@ -9,6 +9,8 @@ export interface EventView {
   amount: string | null;
   rules: string[];
   reasons: string[];
+  rulesEmpty: string;
+  reasonsEmpty: string;
 }
 
 const KIND_LABELS: Record<AuditEventKind, string> = {
@@ -76,6 +78,12 @@ export function resolutionLabel(resolution: AuditResolution): string {
   return RESOLUTION_LABELS[resolution];
 }
 
+function emptyNotes(event: AuditEvent): { rules: string; reasons: string } {
+  if (event.kind !== "proposal") return { rules: "Not applicable", reasons: "Payment step, no rules checked" };
+  if (event.outcome === "approve") return { rules: "None, all checks passed", reasons: "Within every limit in your rule" };
+  return { rules: "None fired", reasons: "No reasons recorded" };
+}
+
 export function describeEvent(event: AuditEvent): EventView {
   const payload = isRecord(event.payload) ? event.payload : {};
   const hits = hitList(event, payload);
@@ -89,5 +97,7 @@ export function describeEvent(event: AuditEvent): EventView {
     amount: typeof payload.total_cents === "number" ? formatCents(payload.total_cents) : null,
     rules: normalizeRules(hits),
     reasons: reasons.map(plainReason),
+    rulesEmpty: emptyNotes(event).rules,
+    reasonsEmpty: emptyNotes(event).reasons,
   };
 }

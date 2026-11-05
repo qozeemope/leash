@@ -51,8 +51,9 @@ function OutcomeCell({ data }: ICellRendererParams<AuditEvent>) {
 
 function RulesCell({ data }: ICellRendererParams<AuditEvent>) {
   if (!data) return null;
-  const rules = describeEvent(data).rules;
-  if (rules.length === 0) return <span>None fired</span>;
+  const view = describeEvent(data);
+  const rules = view.rules;
+  if (rules.length === 0) return <span>{view.rulesEmpty}</span>;
   return (
     <ul className="grid-tags">
       {rules.map((rule) => (
@@ -66,8 +67,9 @@ function RulesCell({ data }: ICellRendererParams<AuditEvent>) {
 
 function ReasonsCell({ data }: ICellRendererParams<AuditEvent>) {
   if (!data) return null;
-  const reasons = describeEvent(data).reasons;
-  if (reasons.length === 0) return <span>No reasons recorded</span>;
+  const view = describeEvent(data);
+  const reasons = view.reasons;
+  if (reasons.length === 0) return <span>{view.reasonsEmpty}</span>;
   return (
     <ul className="grid-reasons">
       {reasons.map((reason) => (

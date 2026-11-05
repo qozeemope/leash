@@ -35,7 +35,7 @@ export function AuditTable({ events, context }: { events: AuditEvent[]; context:
                 <td>
                   <OutcomeBadge outcome={event.outcome} />
                 </td>
-                <td>{view.rules.length > 0 ? view.rules.join(", ") : "None fired"}</td>
+                <td>{view.rules.length > 0 ? view.rules.join(", ") : view.rulesEmpty}</td>
                 <td>
                   {view.reasons.length > 0 ? (
                     <ul className="grid-reasons">
@@ -44,7 +44,7 @@ export function AuditTable({ events, context }: { events: AuditEvent[]; context:
                       ))}
                     </ul>
                   ) : (
-                    "No reasons recorded"
+                    view.reasonsEmpty
                   )}
                 </td>
                 <td>

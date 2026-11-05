@@ -42,9 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(ME_KEY, user);
       },
       signOut: async () => {
-        await apiFetch<undefined>("/api/auth/logout/", { method: "POST" });
-        queryClient.clear();
-        queryClient.setQueryData(ME_KEY, null);
+        try {
+          await apiFetch<undefined>("/api/auth/logout/", { method: "POST" });
+        } finally {
+          await queryClient.cancelQueries();
+          queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== ME_KEY[0] });
+          queryClient.setQueryData(ME_KEY, null);
+        }
       },
     }),
     [query.data, query.isPending, query.error, refetch, queryClient],
