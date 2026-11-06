@@ -430,9 +430,8 @@ def run_loop(run: AgentRun, pass_raw: bool) -> None:
     system = SYSTEM_PROMPT.format(rules=rules)
     if run.mode == AgentRun.LIVE:
         search, client = products.get_search(), llm.get_client()
-    elif run.mode == AgentRun.DEMO_PURCHASE:
-        search = products.SeededSearch(CATALOG)
-        client, pass_raw = attack_sim.purchase_client(record, search, SEARCH_RESULT_LIMIT), False
+    elif run.mode == AgentRun.SECURITY_TEST:
+        search, client, pass_raw = products.SeededSearch(CATALOG), llm.get_client(), True
     else:
         search, client, pass_raw = products.SeededSearch(CATALOG), attack_sim.scripted_client(run.mode), True
     ctx = RunContext(run, record, search, pass_raw)

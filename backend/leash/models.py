@@ -138,13 +138,13 @@ class AgentRun(models.Model):
     RUNNING, COMPLETED, FAILED = "running", "completed", "failed"
     STATUSES = [(RUNNING, "Running"), (COMPLETED, "Completed"), (FAILED, "Failed")]
     LIVE = "live"
-    DEMO_PURCHASE = "demo_purchase"
+    SECURITY_TEST = "security_test"
     ATTACK_GIFT_CARD = "attack_gift_card"
     ATTACK_OVERSPEND = "attack_overspend"
     ATTACK_BANNED_MERCHANT = "attack_banned_merchant"
     MODES = [
         (LIVE, "Live"),
-        (DEMO_PURCHASE, "Simulated purchase"),
+        (SECURITY_TEST, "Security test"),
         (ATTACK_GIFT_CARD, "Simulated attack: gift card"),
         (ATTACK_OVERSPEND, "Simulated attack: oversized order"),
         (ATTACK_BANNED_MERCHANT, "Simulated attack: banned merchant"),
