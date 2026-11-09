@@ -435,6 +435,7 @@ textarea.field-input { min-height: calc(var(--tap) * 3); resize: vertical; }
 .grid-cell > * + * { margin-top: var(--s-1); }
 .grid-tags { display: flex; flex-wrap: wrap; gap: var(--s-1); margin: 0; padding: var(--s-1) 0; list-style: none; max-width: none; }
 .grid-tags li { margin: 0; }
+.grid-tags .tag { white-space: normal; border-radius: var(--radius); padding-top: 0.1rem; padding-bottom: 0.1rem; line-height: 1.3; }
 .grid-reasons { margin: 0; padding: var(--s-1) 0 var(--s-1) var(--s-4); max-width: none; line-height: 1.4; }
 .grid-reasons li { margin: 0 0 var(--s-1); }
 .grid-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: var(--s-1) 0; }
