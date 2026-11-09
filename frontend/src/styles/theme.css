@@ -389,6 +389,7 @@ textarea.field-input { min-height: calc(var(--tap) * 3); resize: vertical; }
 .money { display: grid; gap: var(--s-4); }
 .money .stats { margin-bottom: 0; }
 .money .stat-value { font-size: var(--text-2xl); }
+.money .stats li { max-width: none; }
 .meter { display: block; width: 100%; max-width: 32rem; height: 0.875rem; appearance: none; border: var(--bw) solid var(--ink); border-radius: 999px; background: var(--paper); overflow: hidden; }
 .meter::-webkit-progress-bar { background: var(--paper); }
 .meter::-webkit-progress-value { background: var(--mint); }
