@@ -22,15 +22,15 @@ Leash is a hackathon project that uses PayPal sandbox accounts only. No real mon
 
 Use GitHub private vulnerability reporting on this repository (Security tab, then Report a vulnerability). Please do not open a public issue for security problems.
 
-## Checks run (1 November 2026)
+## Checks run (9 November 2026)
 
 | Check                                                 | Result                                                                                                                       |
 | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Frontend dependency audit (`npm audit --omit=dev`)    | 0 vulnerabilities                                                                                                            |
 | Backend dependency audit (`pip-audit`)                | No known vulnerabilities                                                                                                     |
 | Real `.env` file in git                               | Never committed. Only `.env.example` is tracked                                                                              |
-| Keys in git history                                   | Searched for the PayPal and Gemini key prefixes: not found                                                                   |
-| Django deployment check (`check --deploy`, debug off) | 2 optional warnings, listed below                                                                                            |
+| Keys in git history                                   | Searched for the PayPal and Gemini key prefixes on 1 November 2026: not found                                                |
+| Django deployment check (`check --deploy`, debug off) | 2 optional warnings on 1 November 2026, listed below                                                                         |
 | Frontend code scan                                    | No `innerHTML`, `eval`, hard-coded secrets or insecure URLs. Only temporary checkout notes are stored in the browser session |
 | Automated tests                                       | Backend and frontend suites run in GitHub Actions on every push                                                              |
 
@@ -43,3 +43,5 @@ Use GitHub private vulnerability reporting on this repository (Security tab, the
 - **PCI and KYC** are out of scope. PayPal handles card data on its own pages, and this project uses sandbox money only.
 - **Webhook verification** is not implemented. Payment status comes from PayPal's capture response, which is acceptable for a sandbox demo.
 - **Single mandate per run, no spending velocity limits.** These are listed as future work in the project proposal.
+- **Shared model quota.** All visitors share one model quota. A global daily token budget limits usage, but heavy use can make the AI steps temporarily unavailable. Policy decisions and PayPal payments do not depend on the model and keep working.
+- **Development dependencies** were not part of the production audit above. They are used only to build and test the frontend and are not included in the final container image.

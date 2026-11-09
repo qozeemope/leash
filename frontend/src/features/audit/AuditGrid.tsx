@@ -102,9 +102,9 @@ export default function AuditGrid({ events, context }: { events: AuditEvent[]; c
     () => [
       { headerName: "Time", field: "created_at", cellRenderer: TimeCell, flex: 1, minWidth: 150 },
       { headerName: "What happened", cellRenderer: WhatCell, flex: 2, minWidth: 200 },
-      { headerName: "Outcome", field: "outcome", cellRenderer: OutcomeCell, flex: 1, minWidth: 140 },
+      { headerName: "Outcome", field: "outcome", cellRenderer: OutcomeCell, flex: 1.4, minWidth: 210 },
       { headerName: "Rules that fired", cellRenderer: RulesCell, flex: 1.4, minWidth: 180 },
-      { headerName: "Reasons", cellRenderer: ReasonsCell, flex: 3, minWidth: 240 },
+      { headerName: "Reasons", cellRenderer: ReasonsCell, flex: 2.5, minWidth: 240 },
       { headerName: "Your decision", cellRenderer: DecisionCell, flex: 1, minWidth: 140 },
     ],
     [],
